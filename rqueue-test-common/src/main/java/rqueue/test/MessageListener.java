@@ -62,7 +62,8 @@ public class MessageListener {
       value = "${email.queue.name}",
       deadLetterQueue = "${email.dead.letter.queue.name}",
       numRetries = "${email.queue.retry.count}",
-      delayedQueue = "true")
+      delayedQueue = "true",
+      visibilityTimeout = "${email.execution.time}")
   public void onMessage(Email email) throws Exception {
     if (failureManager.shouldFail(email.getId())) {
       throw new Exception("Failing email task to be retried" + email);

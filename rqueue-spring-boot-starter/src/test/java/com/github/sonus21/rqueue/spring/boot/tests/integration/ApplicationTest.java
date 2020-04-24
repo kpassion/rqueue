@@ -19,6 +19,7 @@ package com.github.sonus21.rqueue.spring.boot.tests.integration;
 import static com.github.sonus21.rqueue.utils.TimeUtils.waitFor;
 import static org.junit.Assert.assertEquals;
 
+import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.exception.TimedOutException;
 import com.github.sonus21.rqueue.producer.RqueueMessageSender;
 import com.github.sonus21.rqueue.spring.boot.application.Application;
@@ -49,6 +50,7 @@ public class ApplicationTest {
   @Autowired private ConsumedMessageService consumedMessageService;
   @Autowired private RqueueMessageSender messageSender;
   @Autowired private FailureManager failureManager;
+  @Autowired private RqueueRedisTemplate<String> stringRqueueRedisTemplate;
 
   @Value("${job.queue.name}")
   private String jobQueueName;
@@ -96,10 +98,7 @@ public class ApplicationTest {
         () -> emailRetryCount == failureManager.getFailureCount(email.getId()),
         "all retry to be exhausted");
     waitFor(
-        () -> {
-          List<Object> messages = messageSender.getAllMessages(emailDeadLetterQueue);
-          return messages.contains(email);
-        },
+        () -> stringRqueueRedisTemplate.getListSize(emailDeadLetterQueue) > 0,
         "message should be moved to delayed queue");
     assertEquals(emailRetryCount, failureManager.getFailureCount(email.getId()));
     failureManager.delete(email.getId());

@@ -1,4 +1,4 @@
-<img align="right" src="https://raw.githubusercontent.com/sonus21/rqueue/master/docs/static/RQueue-icon.png" alt="Rqueue Logo" width="350">
+<img align="right" src="https://raw.githubusercontent.com/sonus21/rqueue/web-1.0//rqueue/src/main/resources/public/rqueue/img/android-chrome-192x192.png" alt="Rqueue Logo" width="150">
 
 # Rqueue: RedisQueue, Redis Task Queue for Spring and Spring Boot   
  
@@ -9,8 +9,7 @@
 
 Rqueue is an asynchronous task executor(worker) built for spring framework based on the spring framework's messaging library backed by Redis.
 
-
-* A message can be delayed for an arbitrary period of time or delivered immediately. 
+* A message can be delayed for an arbitrary period of time or delivered immediately.
 * Multiple messages can be consumed in parallel by different workers.
 * Message delivery: It's guaranteed that a message is consumed **at least once**.  (Message would be consumed by a worker more than once due to the failure in the underlying worker/restart-process etc, otherwise exactly one delivery)
 

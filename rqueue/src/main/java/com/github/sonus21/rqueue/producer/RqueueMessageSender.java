@@ -16,19 +16,25 @@
 
 package com.github.sonus21.rqueue.producer;
 
+import static org.springframework.util.Assert.isTrue;
+import static org.springframework.util.Assert.notEmpty;
+import static org.springframework.util.Assert.notNull;
+
 import com.github.sonus21.rqueue.annotation.RqueueListener;
+import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.converter.GenericMessageConverter;
 import com.github.sonus21.rqueue.core.RqueueMessage;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
+import com.github.sonus21.rqueue.models.MessageMoveResult;
 import com.github.sonus21.rqueue.utils.Constants;
 import com.github.sonus21.rqueue.utils.QueueUtils;
 import com.github.sonus21.rqueue.utils.Validator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.converter.StringMessageConverter;
-import org.springframework.util.Assert;
 
 /**
  * RqueueMessageSender creates message writer that writes message to Redis and have different
@@ -40,13 +46,14 @@ import org.springframework.util.Assert;
 public class RqueueMessageSender {
   private MessageWriter messageWriter;
   private RqueueMessageTemplate messageTemplate;
+  @Autowired private RqueueRedisTemplate<String> stringRqueueRedisTemplate;
 
   private RqueueMessageSender(
       RqueueMessageTemplate messageTemplate,
       List<MessageConverter> messageConverters,
       boolean addDefault) {
-    Assert.notNull(messageTemplate, "messageTemplate can not be null");
-    Assert.notEmpty(messageConverters, "messageConverters can  not be empty");
+    notNull(messageTemplate, "messageTemplate cannot be null");
+    notEmpty(messageConverters, "messageConverters cannot be empty");
     this.messageTemplate = messageTemplate;
     messageWriter =
         new MessageWriter(messageTemplate, getMessageConverters(addDefault, messageConverters));
@@ -166,33 +173,49 @@ public class RqueueMessageSender {
    *
    * @param deadLetterQueueName dead letter queue name
    * @param queueName queue name
-   * @param maxMessages number of messages to be moved by default move {@link Constants#ONE_MILLI}
-   *     messages
-   * @return success or failure
+   * @param maxMessages number of messages to be moved by default move {@link
+   *     Constants#MAX_MESSAGES} messages
+   * @return success or failure.
    */
   public boolean moveMessageFromDeadLetterToQueue(
       String deadLetterQueueName, String queueName, Integer maxMessages) {
-    Assert.notNull(deadLetterQueueName, "deadLetterQueueName must not be null");
-    Assert.notNull(queueName, "queueName must not be null");
-    Assert.isTrue(
-        !deadLetterQueueName.equals(queueName),
-        "deadLetterQueueName and queueName must be different");
-    if (maxMessages == null) {
-      maxMessages = Constants.MAX_MESSAGES;
-    }
-    Assert.isTrue(maxMessages > 0, "maxMessage must be greater than zero");
-    return messageTemplate.moveMessage(deadLetterQueueName, queueName, maxMessages);
+    return moveMessageListToList(deadLetterQueueName, queueName, maxMessages).isSuccess();
   }
 
   /**
    * A shortcut to the method {@link #moveMessageFromDeadLetterToQueue(String, String, Integer)}
    *
+   * @deprecated from 1.5.0, move to {@link #moveMessageListToList(String, String, Integer)}
    * @param deadLetterQueueName dead letter queue name
    * @param queueName queue name
    * @return success or failure
    */
   public boolean moveMessageFromDeadLetterToQueue(String deadLetterQueueName, String queueName) {
-    return moveMessageFromDeadLetterToQueue(deadLetterQueueName, queueName, null);
+    return moveMessageListToList(deadLetterQueueName, queueName, null).isSuccess();
+  }
+
+  /**
+   * A shortcut to the method {@link #moveMessageFromDeadLetterToQueue(String, String, Integer)}
+   *
+   * @deprecated please use {@link RqueueMessageTemplate} to move messages.
+   * @param sourceQueue source queue name
+   * @param destinationQueue destination queue name
+   * @return success or failure.
+   * @see RqueueMessageTemplate
+   */
+  private MessageMoveResult moveMessageListToList(
+      String sourceQueue, String destinationQueue, Integer maxMessage) {
+    notNull(sourceQueue, "sourceQueue must not be null");
+    notNull(destinationQueue, "destinationQueue must not be null");
+    isTrue(
+        !sourceQueue.equals(destinationQueue),
+        "sourceQueue and destinationQueue must be different");
+    Integer messageCount = maxMessage;
+    if (messageCount == null) {
+      messageCount = Constants.MAX_MESSAGES;
+    }
+    isTrue(messageCount > 0, "maxMessage must be greater than zero");
+    return messageTemplate.moveMessageListToList(sourceQueue, destinationQueue, messageCount);
   }
 
   /**
@@ -200,9 +223,10 @@ public class RqueueMessageSender {
    *
    * @param queueName queue name
    */
-  public void deleteAllMessages(String queueName) {
-    messageTemplate.deleteKey(queueName);
-    messageTemplate.deleteKey(QueueUtils.getProcessingQueueName(queueName));
-    messageTemplate.deleteKey(QueueUtils.getTimeQueueName(queueName));
+  public boolean deleteAllMessages(String queueName) {
+    stringRqueueRedisTemplate.delete(queueName);
+    stringRqueueRedisTemplate.delete(QueueUtils.getProcessingQueueName(queueName));
+    stringRqueueRedisTemplate.delete(QueueUtils.getDelayedQueueName(queueName));
+    return true;
   }
 }

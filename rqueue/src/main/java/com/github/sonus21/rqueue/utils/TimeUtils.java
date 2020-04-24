@@ -17,6 +17,9 @@
 package com.github.sonus21.rqueue.utils;
 
 import com.github.sonus21.rqueue.exception.TimedOutException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -29,6 +32,8 @@ import java.util.function.BooleanSupplier;
  * throwing exception.
  */
 public class TimeUtils {
+  private static DateFormat simple = new SimpleDateFormat("dd MMM yyyy HH:mm");
+
   private TimeUtils() {}
 
   public static void waitFor(
@@ -69,10 +74,48 @@ public class TimeUtils {
   }
 
   public static void sleep(long time) {
+    sleepLog(time, true);
+  }
+
+  public static void sleepLog(long time, boolean log) {
     try {
       Thread.sleep(time);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      Thread.currentThread().interrupt();
+      if (log) {
+        e.printStackTrace();
+      }
     }
+  }
+
+  public static String millisToHumanRepresentation(long milli) {
+    long seconds = milli / 1000;
+    long minutes = seconds / Constants.SECONDS_IN_A_MINUTE;
+    seconds = seconds % Constants.SECONDS_IN_A_MINUTE; // remaining seconds
+    long hours = minutes / Constants.MINUTES_IN_AN_HOUR;
+    minutes = minutes % Constants.MINUTES_IN_AN_HOUR; // remaining minutes
+    long days = hours / Constants.HOURS_IN_A_DAY;
+    hours = hours % Constants.HOURS_IN_A_DAY; // remaining hours
+    String s;
+    if (days != 0) {
+      s = days + " Day, " + hours + " Hours, " + minutes + " Minutes, " + seconds + " Seconds.";
+    } else {
+      if (hours != 0) {
+        s = hours + " Hours, " + minutes + " Minutes, " + seconds + " Seconds.";
+      } else if (minutes != 0) {
+        s = minutes + " Minutes, " + seconds + " Seconds.";
+      } else {
+        s = seconds + " Seconds.";
+      }
+    }
+    return s;
+  }
+
+  public static String formatMilliToString(Long milli) {
+    if (milli == null) {
+      return "";
+    }
+    Date time = new Date(milli);
+    return simple.format(time);
   }
 }

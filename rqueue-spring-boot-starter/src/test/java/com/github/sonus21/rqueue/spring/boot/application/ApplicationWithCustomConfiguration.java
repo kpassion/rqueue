@@ -17,9 +17,9 @@
 package com.github.sonus21.rqueue.spring.boot.application;
 
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
+import com.github.sonus21.rqueue.core.RqueueMessageTemplateImpl;
 import com.github.sonus21.rqueue.listener.RqueueMessageHandler;
 import com.github.sonus21.rqueue.listener.RqueueMessageListenerContainer;
-import com.github.sonus21.rqueue.processor.NoOpMessageProcessor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -45,14 +45,16 @@ public class ApplicationWithCustomConfiguration extends BaseApplication {
   }
 
   @Bean
+  public RqueueMessageTemplate rqueueMessageTemplate(
+      RedisConnectionFactory redisConnectionFactory) {
+    return new RqueueMessageTemplateImpl(redisConnectionFactory);
+  }
+
+  @Bean
   public RqueueMessageListenerContainer rqueueMessageListenerContainer(
-      RqueueMessageHandler rqueueMessageHandler, RedisConnectionFactory redisConnectionFactory) {
+      RqueueMessageHandler rqueueMessageHandler, RqueueMessageTemplate rqueueMessageTemplate) {
     RqueueMessageListenerContainer rqueueMessageListenerContainer =
-        new RqueueMessageListenerContainer(
-            rqueueMessageHandler,
-            new RqueueMessageTemplate(redisConnectionFactory),
-            new NoOpMessageProcessor(),
-            new NoOpMessageProcessor());
+        new RqueueMessageListenerContainer(rqueueMessageHandler, rqueueMessageTemplate);
     rqueueMessageListenerContainer.setMaxNumWorkers(maxWorkers);
     return rqueueMessageListenerContainer;
   }

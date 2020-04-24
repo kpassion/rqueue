@@ -19,10 +19,10 @@ package com.github.sonus21.rqueue.listener;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import java.lang.ref.WeakReference;
 import java.util.List;
-import org.slf4j.Logger;
+import java.util.Objects;
 import org.springframework.messaging.converter.MessageConverter;
 
-public class MessageContainerBase {
+class MessageContainerBase {
   protected final WeakReference<RqueueMessageListenerContainer> container;
 
   MessageContainerBase(RqueueMessageListenerContainer container) {
@@ -33,27 +33,19 @@ public class MessageContainerBase {
     this.container = container;
   }
 
-  Logger getLogger() {
-    container.get();
-    return RqueueMessageListenerContainer.logger;
-  }
-
-  @SuppressWarnings("ConstantConditions")
   RqueueMessageHandler getMessageHandler() {
-    return container.get().getRqueueMessageHandler();
+    return Objects.requireNonNull(container.get()).getRqueueMessageHandler();
   }
 
   protected List<MessageConverter> getMessageConverters() {
     return getMessageHandler().getMessageConverters();
   }
 
-  @SuppressWarnings("ConstantConditions")
   protected RqueueMessageTemplate getRqueueMessageTemplate() {
-    return container.get().getRqueueMessageTemplate();
+    return Objects.requireNonNull(container.get()).getRqueueMessageTemplate();
   }
 
-  @SuppressWarnings("ConstantConditions")
   boolean isQueueActive(String queueName) {
-    return container.get().isQueueActive(queueName);
+    return Objects.requireNonNull(container.get()).isQueueActive(queueName);
   }
 }

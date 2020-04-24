@@ -1,22 +1,11 @@
 dependencies {
     compile project(":rqueue")
 
-    // https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api
-    compile group: 'javax.servlet', name: 'javax.servlet-api', version: "${javaxServletVersion}"
-
     // https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus
     compile group: 'io.micrometer', name: 'micrometer-registry-prometheus', version: "${microMeterVersion}"
 
-    // https://mvnrepository.com/artifact/org.springframework/spring-webmvc
-    compile group: 'org.springframework', name: 'spring-webmvc', version: "${springVersion}"
-
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
     compile group: 'io.lettuce', name: 'lettuce-core', version: "${lettuceVersion}"
-
-    // https://mvnrepository.com/artifact/org.projectlombok/lombok
-    compile group: 'org.projectlombok', name: 'lombok', version: "${lombokVersion}"
-
-    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     // https://mvnrepository.com/artifact/javax.persistence/javax.persistence-api
     compile group: 'javax.persistence', name: 'javax.persistence-api', version: "${jpaVersion}"

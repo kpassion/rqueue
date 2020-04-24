@@ -38,17 +38,17 @@ public class SpringMetricTest extends MetricTestBase {
 
   @Test
   public void delayedQueueStatus() throws TimedOutException {
-    this.delayedQueueStatus(redisTemplate);
+    this.verifyDelayedQueueStatus();
   }
 
   @Test
   public void metricStatus() throws TimedOutException {
-    this.metricStatus(redisTemplate);
+    this.verifyMetricStatus();
   }
 
   @Test
   @Ignore
   public void countStatusTest() throws TimedOutException {
-    this.countStatus();
+    this.verifyCountStatus();
   }
 }

@@ -16,20 +16,20 @@
 
 package com.github.sonus21.rqueue.spring.boot.tests.integration;
 
-import static com.github.sonus21.rqueue.utils.RedisUtils.getRedisTemplate;
 import static com.github.sonus21.rqueue.utils.TimeUtils.waitFor;
 import static rqueue.test.TestUtils.buildMessage;
 
 import com.github.sonus21.rqueue.core.RqueueMessage;
+import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.exception.TimedOutException;
 import com.github.sonus21.rqueue.producer.RqueueMessageSender;
 import com.github.sonus21.rqueue.spring.boot.application.ApplicationWithCustomConfiguration;
 import com.github.sonus21.rqueue.utils.QueueUtils;
+import com.github.sonus21.rqueue.utils.TimeUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,8 +37,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -53,7 +51,7 @@ import rqueue.test.service.ConsumedMessageService;
 @Slf4j
 @TestPropertySource(
     properties = {
-      "auto.start.scheduler=false",
+      "rqueue.scheduler.auto.start=false",
       "spring.redis.port=6383",
       "mysql.db.name=test3",
       "max.workers.count=120"
@@ -63,10 +61,9 @@ public class ProcessingMessageSchedulerTest {
     System.setProperty("TEST_NAME", ProcessingMessageSchedulerTest.class.getSimpleName());
   }
 
-  @Autowired protected ConsumedMessageService consumedMessageService;
-  @Autowired protected RqueueMessageSender messageSender;
-  @Autowired protected RedisConnectionFactory redisConnectionFactory;
-  private RedisTemplate<String, RqueueMessage> redisTemplate;
+  @Autowired private ConsumedMessageService consumedMessageService;
+  @Autowired private RqueueMessageSender messageSender;
+  @Autowired private RqueueMessageTemplate rqueueMessageTemplate;
 
   @Value("${job.queue.name}")
   private String jobQueueName;
@@ -78,7 +75,7 @@ public class ProcessingMessageSchedulerTest {
           1,
           () -> {
             for (Entry<String, List<RqueueMessage>> entry :
-                TestUtils.getMessageMap(jobQueueName, redisTemplate).entrySet()) {
+                TestUtils.getMessageMap(jobQueueName, rqueueMessageTemplate).entrySet()) {
               log.error("FAILING Queue {}", entry.getKey());
               for (RqueueMessage message : entry.getValue()) {
                 log.error("FAILING Queue {} Msg {}", entry.getKey(), message);
@@ -87,11 +84,6 @@ public class ProcessingMessageSchedulerTest {
           });
 
   private int messageCount = 110;
-
-  @PostConstruct
-  public void init() {
-    redisTemplate = getRedisTemplate(redisConnectionFactory);
-  }
 
   @Test
   public void publishMessageIsTriggeredOnMessageRemoval()
@@ -110,17 +102,13 @@ public class ProcessingMessageSchedulerTest {
       if (random.nextBoolean()) {
         delay = delay * -1;
       }
-      redisTemplate
-          .opsForZSet()
-          .add(
-              processingQueueName,
-              buildMessage(job, jobQueueName, null, null),
-              currentTime + delay);
+      rqueueMessageTemplate.addToZset(
+          processingQueueName, buildMessage(job, jobQueueName, null, null), currentTime + delay);
     }
-    Thread.sleep(maxDelay);
+    TimeUtils.sleep(maxDelay);
     waitFor(
         () -> 0 == messageSender.getAllMessages(jobQueueName).size(),
-        60 * 1000L,
+        30 * 1000L,
         "messages to be consumed");
     waitFor(
         () -> messageCount == consumedMessageService.getMessages(ids, Job.class).size(),

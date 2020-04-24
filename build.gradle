@@ -20,10 +20,10 @@ allprojects {
     }
 }
 ext {
-    springBootVersion = System.getenv("SPRING_BOOT_VERSION")
-    springVersion = System.getenv("SPRING_VERSION")
-    springDataVersion = System.getenv("SPRING_DATA_VERSION")
-    microMeterVersion = System.getenv("MICROMETER_VERSION")
+    springBootVersion = '2.1.0.RELEASE'
+    springVersion = '5.1.2.RELEASE'
+    springDataVersion = '2.1.2.RELEASE'
+    microMeterVersion = '1.1.0'
 
     // logging dependencies
     lombokVersion = '1.18.10'
@@ -46,19 +46,23 @@ ext {
 
     // server
     javaxServletVersion = '4.0.1'
-
+    twigVersion = '5.87.0.RELEASE'
 
     // database
     lettuceVersion = '5.2.0.RELEASE'
     javaxAnnotationVersion = '1.3.2'
     jpaVersion = '2.2'
     hibernateVersion = '5.4.9.Final'
+
+    // other dependencies
+    javaxValidationApiVersion = '2.0.1.Final'
+
 }
 
 
 subprojects {
     group = 'com.github.sonus21'
-    version = '1.4.0-RELEASE'
+    version = '1.5.0-RELEASE'
 
     dependencies {
         // https://mvnrepository.com/artifact/org.springframework/spring-messaging
@@ -66,7 +70,9 @@ subprojects {
         // https://mvnrepository.com/artifact/org.springframework.data/spring-data-redis
         compile group: 'org.springframework.data', name: 'spring-data-redis', version: "${springDataVersion}"
 
-        testCompile group: 'org.projectlombok', name: 'lombok', version: "${lombokVersion}"
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+        testCompile "org.projectlombok:lombok:${lombokVersion}"
         testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
         // https://mvnrepository.com/artifact/ch.qos.logback/logback-core

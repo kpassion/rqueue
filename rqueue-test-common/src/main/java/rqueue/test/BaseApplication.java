@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Sonu Kumar
+ * Copyright 2020 Sonu Kumar
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -43,8 +44,14 @@ public abstract class BaseApplication {
   @Value("${spring.redis.host}")
   private String redisHost;
 
+  @Value("${use.local.redis:false}")
+  private boolean useLocalRedis;
+
   @PostConstruct
   public void postConstruct() {
+    if (useLocalRedis) {
+      return;
+    }
     if (redisServer == null) {
       redisServer = new RedisServer(redisPort);
       redisServer.start();
@@ -78,6 +85,11 @@ public abstract class BaseApplication {
     factory.setPackagesToScan("rqueue.test.entity");
     factory.setDataSource(dataSource());
     return factory;
+  }
+
+  @Bean
+  public RedisMessageListenerContainer container() {
+    return new RedisMessageListenerContainer();
   }
 
   @Bean
