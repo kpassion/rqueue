@@ -21,7 +21,6 @@ import static com.github.sonus21.rqueue.utils.RedisUtils.getRedisTemplate;
 import com.github.sonus21.rqueue.common.RqueueLockManager;
 import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.common.impl.RqueueLockManagerImpl;
-import com.github.sonus21.rqueue.config.support.SchedulerEnabled;
 import com.github.sonus21.rqueue.core.DelayedMessageScheduler;
 import com.github.sonus21.rqueue.core.ProcessingMessageScheduler;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
@@ -36,7 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 
@@ -110,7 +108,6 @@ public abstract class RqueueListenerBaseConfig {
   }
 
   @Bean
-  @Conditional(SchedulerEnabled.class)
   public RqueueRedisListenerContainerFactory rqueueRedisListenerContainerFactory() {
     return new RqueueRedisListenerContainerFactory();
   }
@@ -122,7 +119,6 @@ public abstract class RqueueListenerBaseConfig {
    * @return {@link DelayedMessageScheduler} object
    */
   @Bean
-  @Conditional(SchedulerEnabled.class)
   public DelayedMessageScheduler delayedMessageScheduler() {
     return new DelayedMessageScheduler();
   }
@@ -134,7 +130,6 @@ public abstract class RqueueListenerBaseConfig {
    * @return {@link ProcessingMessageScheduler} object
    */
   @Bean
-  @Conditional(SchedulerEnabled.class)
   public ProcessingMessageScheduler processingMessageScheduler() {
     return new ProcessingMessageScheduler();
   }

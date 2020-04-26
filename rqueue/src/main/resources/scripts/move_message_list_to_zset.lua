@@ -16,7 +16,7 @@ for i = tonumber(ARGV[1]), 1, -1
 do
     local msg = redis.call('LRANGE', KEYS[1], 0, 0)
     if msg ~= nil then
-        redis.call("ZADD", KEYS[2], ARGV[2], msg)
+        redis.call("ZADD", KEYS[2], ARGV[2], msg[1])
         redis.call("LPOP", KEYS[1])
     else
         break

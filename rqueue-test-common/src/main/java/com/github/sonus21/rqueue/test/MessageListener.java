@@ -37,7 +37,7 @@ public class MessageListener {
   @NonNull private ConsumedMessageService consumedMessageService;
   @NonNull private FailureManager failureManager;
 
-  @RqueueListener("${job.queue.name}")
+  @RqueueListener(value = "${job.queue.name}", active = "true")
   public void onMessage(Job job) throws Exception {
     if (failureManager.shouldFail(job.getId())) {
       throw new Exception("Failing job task to be retried" + job);
@@ -49,7 +49,8 @@ public class MessageListener {
   @RqueueListener(
       value = "${notification.queue.name}",
       numRetries = "${notification.queue.retry.count}",
-      delayedQueue = "true")
+      delayedQueue = "true",
+      active = "true")
   public void onMessage(Notification notification) throws Exception {
     if (failureManager.shouldFail(notification.getId())) {
       throw new Exception("Failing notification task to be retried" + notification);
@@ -63,7 +64,8 @@ public class MessageListener {
       deadLetterQueue = "${email.dead.letter.queue.name}",
       numRetries = "${email.queue.retry.count}",
       delayedQueue = "true",
-      visibilityTimeout = "${email.execution.time}")
+      visibilityTimeout = "${email.execution.time}",
+      active = "true")
   public void onMessage(Email email) throws Exception {
     if (failureManager.shouldFail(email.getId())) {
       throw new Exception("Failing email task to be retried" + email);

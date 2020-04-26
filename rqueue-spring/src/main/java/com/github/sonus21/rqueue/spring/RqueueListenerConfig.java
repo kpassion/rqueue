@@ -26,6 +26,7 @@ import com.github.sonus21.rqueue.metrics.QueueCounter;
 import com.github.sonus21.rqueue.metrics.RqueueCounter;
 import com.github.sonus21.rqueue.metrics.RqueueMetrics;
 import com.github.sonus21.rqueue.producer.RqueueMessageSender;
+import com.github.sonus21.rqueue.producer.RqueueMessageSenderImpl;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -66,10 +67,10 @@ public class RqueueListenerConfig extends RqueueListenerBaseConfig {
   @Bean
   public RqueueMessageSender rqueueMessageSender(RqueueMessageTemplate rqueueMessageTemplate) {
     if (simpleRqueueListenerContainerFactory.getMessageConverters() != null) {
-      return new RqueueMessageSender(
+      return new RqueueMessageSenderImpl(
           rqueueMessageTemplate, simpleRqueueListenerContainerFactory.getMessageConverters());
     }
-    return new RqueueMessageSender(rqueueMessageTemplate);
+    return new RqueueMessageSenderImpl(rqueueMessageTemplate);
   }
 
   @Bean

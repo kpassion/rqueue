@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
+import com.github.sonus21.rqueue.core.RqueueMessageTemplateImpl;
 import com.github.sonus21.rqueue.models.MessageMoveResult;
 import java.util.Random;
 import org.junit.Before;
@@ -41,7 +42,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RqueueMessageSenderTest {
   @Rule public ExpectedException expectedException = ExpectedException.none();
   private RqueueMessageTemplate rqueueMessageTemplate = mock(RqueueMessageTemplate.class);
-  private RqueueMessageSender rqueueMessageSender = new RqueueMessageSender(rqueueMessageTemplate);
+  private RqueueMessageSender rqueueMessageSender =
+      new RqueueMessageSenderImpl(rqueueMessageTemplate);
   private String queueName = "test-queue";
   private String slowQueue = "slow-queue";
   private String deadLetterQueueName = "dead-test-queue";

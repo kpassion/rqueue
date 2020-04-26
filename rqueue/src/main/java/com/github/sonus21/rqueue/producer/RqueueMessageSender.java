@@ -16,25 +16,10 @@
 
 package com.github.sonus21.rqueue.producer;
 
-import static org.springframework.util.Assert.isTrue;
-import static org.springframework.util.Assert.notEmpty;
-import static org.springframework.util.Assert.notNull;
-
 import com.github.sonus21.rqueue.annotation.RqueueListener;
-import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
-import com.github.sonus21.rqueue.converter.GenericMessageConverter;
-import com.github.sonus21.rqueue.core.RqueueMessage;
-import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
-import com.github.sonus21.rqueue.models.MessageMoveResult;
 import com.github.sonus21.rqueue.utils.Constants;
-import com.github.sonus21.rqueue.utils.QueueUtils;
-import com.github.sonus21.rqueue.utils.Validator;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.converter.MessageConverter;
-import org.springframework.messaging.converter.StringMessageConverter;
 
 /**
  * RqueueMessageSender creates message writer that writes message to Redis and have different
@@ -43,43 +28,19 @@ import org.springframework.messaging.converter.StringMessageConverter;
  *
  * @author Sonu Kumar
  */
-public class RqueueMessageSender {
-  private MessageWriter messageWriter;
-  private RqueueMessageTemplate messageTemplate;
-  @Autowired private RqueueRedisTemplate<String> stringRqueueRedisTemplate;
-
-  private RqueueMessageSender(
-      RqueueMessageTemplate messageTemplate,
-      List<MessageConverter> messageConverters,
-      boolean addDefault) {
-    notNull(messageTemplate, "messageTemplate cannot be null");
-    notEmpty(messageConverters, "messageConverters cannot be empty");
-    this.messageTemplate = messageTemplate;
-    messageWriter =
-        new MessageWriter(messageTemplate, getMessageConverters(addDefault, messageConverters));
-  }
-
-  public RqueueMessageSender(RqueueMessageTemplate messageTemplate) {
-    this(messageTemplate, Collections.singletonList(new GenericMessageConverter()), false);
-  }
-
-  public RqueueMessageSender(
-      RqueueMessageTemplate messageTemplate, List<MessageConverter> messageConverters) {
-    this(messageTemplate, messageConverters, true);
-  }
-
-  private List<MessageConverter> getMessageConverters(
-      boolean addDefault, List<MessageConverter> messageConverters) {
-    List<MessageConverter> messageConverterList = new ArrayList<>();
-    StringMessageConverter stringMessageConverter = new StringMessageConverter();
-    stringMessageConverter.setSerializedPayloadClass(String.class);
-    messageConverterList.add(stringMessageConverter);
-    if (addDefault) {
-      messageConverterList.add(new GenericMessageConverter());
-    }
-    messageConverterList.addAll(messageConverters);
-    return messageConverterList;
-  }
+public interface RqueueMessageSender {
+  /**
+   * Submit a message on given queue without any delay, listener would try to consume this message
+   * immediately but due to heavy load message consumption can be delayed if message producer rate
+   * is higher than the rate at consumer consume the messages.
+   *
+   * @param queueName on which queue message has to be send
+   * @param message message object it could be any arbitrary object.
+   * @return message was submitted successfully or failed.
+   * @deprecated since 1.5.0 migrate to {@link #enqueue(String, Object)}
+   */
+  @Deprecated
+  boolean put(String queueName, Object message);
 
   /**
    * Submit a message on given queue without any delay, listener would try to consume this message
@@ -90,10 +51,23 @@ public class RqueueMessageSender {
    * @param message message object it could be any arbitrary object.
    * @return message was submitted successfully or failed.
    */
-  public boolean put(String queueName, Object message) {
-    Validator.validateQueueNameAndMessage(queueName, message);
-    return messageWriter.pushMessage(queueName, message, null, null);
-  }
+  boolean enqueue(String queueName, Object message);
+
+  /**
+   * This is an extension to the method {@link #put(String, Object)}. By default container would try
+   * to deliver the same message for {@link Integer#MAX_VALUE} times, but that can be either
+   * overridden using {@link RqueueListener#numRetries()}, even that value can be overridden using
+   * this method.
+   *
+   * @deprecated please move to {@link #enqueueWithRetry(String, Object, int)}
+   * @param queueName on which queue message has to be send
+   * @param message message object it could be any arbitrary object.
+   * @param retryCount how many times a message would be retried, before it can be discarded or sent
+   *     to dead letter queue configured using {@link RqueueListener#delayedQueue()}
+   * @return message was submitted successfully or failed.
+   */
+  @Deprecated
+  boolean put(String queueName, Object message, int retryCount);
 
   /**
    * This is an extension to the method {@link #put(String, Object)}. By default container would try
@@ -107,12 +81,21 @@ public class RqueueMessageSender {
    *     to dead letter queue configured using {@link RqueueListener#delayedQueue()}
    * @return message was submitted successfully or failed.
    */
-  public boolean put(String queueName, Object message, int retryCount) {
-    Validator.validateQueueNameAndMessage(queueName, message);
-    Validator.validateRetryCount(retryCount);
-    return messageWriter.pushMessage(queueName, message, retryCount, null);
-  }
+  boolean enqueueWithRetry(String queueName, Object message, int retryCount);
 
+  /**
+   * This is the extension to the method {@link #put(String, Object)}, in this we can specify when
+   * this message would be visible to the consumer.
+   *
+   * @deprecated please migrate to {@link #enqueueWithDelay(String, Object, long)}
+   * @param queueName on which queue message has to be send
+   * @param message message object it could be any arbitrary object.
+   * @param delayInMilliSecs delay in milli seconds, this message would be only visible to the
+   *     listener when number of millisecond has elapsed.
+   * @return message was submitted successfully or failed.
+   */
+  @Deprecated
+  boolean put(String queueName, Object message, long delayInMilliSecs);
   /**
    * This is the extension to the method {@link #put(String, Object)}, in this we can specify when
    * this message would be visible to the consumer.
@@ -123,26 +106,31 @@ public class RqueueMessageSender {
    *     listener when number of millisecond has elapsed.
    * @return message was submitted successfully or failed.
    */
-  public boolean put(String queueName, Object message, long delayInMilliSecs) {
-    Validator.validateQueueNameAndMessage(queueName, message);
-    Validator.validateDelay(delayInMilliSecs);
-    return messageWriter.pushMessage(queueName, message, null, delayInMilliSecs);
-  }
-
+  boolean enqueueWithDelay(String queueName, Object message, long delayInMilliSecs);
   /**
    * Find all messages stored on a given queue, it considers all the messages including delayed and
    * non-delayed.
    *
    * @param queueName queue name to be query for
-   * @return list of messages
+   * @return list of messages.
    */
-  public List<Object> getAllMessages(String queueName) {
-    List<Object> messages = new ArrayList<>();
-    for (RqueueMessage message : messageTemplate.getAllMessages(queueName)) {
-      messages.add(messageWriter.convertMessageToObject(message));
-    }
-    return messages;
-  }
+  List<Object> getAllMessages(String queueName);
+
+  /**
+   * Extension to the {@link #put(String, Object, long)}, as like other retry method we can override
+   * number of times a listener would be retrying
+   *
+   * @param queueName on which queue message has to be send
+   * @param message message object it could be any arbitrary object.
+   * @param retryCount how many times a message would be retried, before it can be discarded or sent
+   *     to dead letter queue configured using {@link RqueueListener#delayedQueue()}
+   * @param delayInMilliSecs delay in milli seconds, this message would be only visible to the
+   *     listener when number of millisecond has elapsed.
+   * @return message was submitted successfully or failed.
+   * @deprecated since 1.5.0 please migrate to {@link #enqueue(String, Object, int, long)}
+   */
+  @Deprecated
+  boolean put(String queueName, Object message, int retryCount, long delayInMilliSecs);
 
   /**
    * Extension to the {@link #put(String, Object, long)}, as like other retry method we can override
@@ -156,16 +144,7 @@ public class RqueueMessageSender {
    *     listener when number of millisecond has elapsed.
    * @return message was submitted successfully or failed.
    */
-  public boolean put(String queueName, Object message, int retryCount, long delayInMilliSecs) {
-    Validator.validateQueueNameAndMessage(queueName, message);
-    Validator.validateRetryCount(retryCount);
-    Validator.validateDelay(delayInMilliSecs);
-    return messageWriter.pushMessage(queueName, message, retryCount, delayInMilliSecs);
-  }
-
-  public List<MessageConverter> getMessageConverters() {
-    return messageWriter.getMessageConverters();
-  }
+  boolean enqueue(String queueName, Object message, int retryCount, long delayInMilliSecs);
 
   /**
    * Move messages from Dead Letter queue to the destination queue. This push the messages at the
@@ -177,56 +156,30 @@ public class RqueueMessageSender {
    *     Constants#MAX_MESSAGES} messages
    * @return success or failure.
    */
-  public boolean moveMessageFromDeadLetterToQueue(
-      String deadLetterQueueName, String queueName, Integer maxMessages) {
-    return moveMessageListToList(deadLetterQueueName, queueName, maxMessages).isSuccess();
-  }
+  boolean moveMessageFromDeadLetterToQueue(
+      String deadLetterQueueName, String queueName, Integer maxMessages);
 
   /**
    * A shortcut to the method {@link #moveMessageFromDeadLetterToQueue(String, String, Integer)}
    *
-   * @deprecated from 1.5.0, move to {@link #moveMessageListToList(String, String, Integer)}
    * @param deadLetterQueueName dead letter queue name
    * @param queueName queue name
    * @return success or failure
    */
-  public boolean moveMessageFromDeadLetterToQueue(String deadLetterQueueName, String queueName) {
-    return moveMessageListToList(deadLetterQueueName, queueName, null).isSuccess();
-  }
-
-  /**
-   * A shortcut to the method {@link #moveMessageFromDeadLetterToQueue(String, String, Integer)}
-   *
-   * @deprecated please use {@link RqueueMessageTemplate} to move messages.
-   * @param sourceQueue source queue name
-   * @param destinationQueue destination queue name
-   * @return success or failure.
-   * @see RqueueMessageTemplate
-   */
-  private MessageMoveResult moveMessageListToList(
-      String sourceQueue, String destinationQueue, Integer maxMessage) {
-    notNull(sourceQueue, "sourceQueue must not be null");
-    notNull(destinationQueue, "destinationQueue must not be null");
-    isTrue(
-        !sourceQueue.equals(destinationQueue),
-        "sourceQueue and destinationQueue must be different");
-    Integer messageCount = maxMessage;
-    if (messageCount == null) {
-      messageCount = Constants.MAX_MESSAGES;
-    }
-    isTrue(messageCount > 0, "maxMessage must be greater than zero");
-    return messageTemplate.moveMessageListToList(sourceQueue, destinationQueue, messageCount);
-  }
+  boolean moveMessageFromDeadLetterToQueue(String deadLetterQueueName, String queueName);
 
   /**
    * Very dangerous method it will delete all messages in a queue
    *
    * @param queueName queue name
+   * @return fail/success
    */
-  public boolean deleteAllMessages(String queueName) {
-    stringRqueueRedisTemplate.delete(queueName);
-    stringRqueueRedisTemplate.delete(QueueUtils.getProcessingQueueName(queueName));
-    stringRqueueRedisTemplate.delete(QueueUtils.getDelayedQueueName(queueName));
-    return true;
-  }
+  boolean deleteAllMessages(String queueName);
+
+  /**
+   * Get one or more registered message converters.
+   *
+   * @return registered message converters.
+   */
+  Iterable<? extends MessageConverter> getMessageConverters();
 }

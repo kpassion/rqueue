@@ -18,14 +18,13 @@ package com.github.sonus21.rqueue.spring;
 
 import com.github.sonus21.rqueue.exception.TimedOutException;
 import com.github.sonus21.rqueue.spring.app.AppWithMetricEnabled;
+import com.github.sonus21.rqueue.test.tests.MetricTestBase;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
-import com.github.sonus21.rqueue.test.tests.MetricTestBase;
 
 @ContextConfiguration(classes = AppWithMetricEnabled.class)
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -47,7 +46,6 @@ public class SpringMetricTest extends MetricTestBase {
   }
 
   @Test
-  @Ignore
   public void countStatusTest() throws TimedOutException {
     this.verifyCountStatus();
   }

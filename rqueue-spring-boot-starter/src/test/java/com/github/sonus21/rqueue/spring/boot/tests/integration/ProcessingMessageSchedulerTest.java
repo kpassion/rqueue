@@ -16,14 +16,19 @@
 
 package com.github.sonus21.rqueue.spring.boot.tests.integration;
 
-import static com.github.sonus21.rqueue.utils.TimeUtils.waitFor;
 import static com.github.sonus21.rqueue.test.TestUtils.buildMessage;
+import static com.github.sonus21.rqueue.utils.TimeUtils.waitFor;
 
+import com.github.sonus21.rqueue.core.ProcessingMessageScheduler;
 import com.github.sonus21.rqueue.core.RqueueMessage;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.exception.TimedOutException;
 import com.github.sonus21.rqueue.producer.RqueueMessageSender;
 import com.github.sonus21.rqueue.spring.boot.application.ApplicationWithCustomConfiguration;
+import com.github.sonus21.rqueue.test.RunTestUntilFail;
+import com.github.sonus21.rqueue.test.TestUtils;
+import com.github.sonus21.rqueue.test.dto.Job;
+import com.github.sonus21.rqueue.test.service.ConsumedMessageService;
 import com.github.sonus21.rqueue.utils.QueueUtils;
 import com.github.sonus21.rqueue.utils.TimeUtils;
 import java.util.ArrayList;
@@ -31,6 +36,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
+import org.jboss.logging.MDC;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,10 +46,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import com.github.sonus21.rqueue.test.RunTestUntilFail;
-import com.github.sonus21.rqueue.test.TestUtils;
-import com.github.sonus21.rqueue.test.dto.Job;
-import com.github.sonus21.rqueue.test.service.ConsumedMessageService;
 
 @SpringBootTest
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -64,6 +66,7 @@ public class ProcessingMessageSchedulerTest {
   @Autowired private ConsumedMessageService consumedMessageService;
   @Autowired private RqueueMessageSender messageSender;
   @Autowired private RqueueMessageTemplate rqueueMessageTemplate;
+  @Autowired private ProcessingMessageScheduler processingMessageScheduler;
 
   @Value("${job.queue.name}")
   private String jobQueueName;

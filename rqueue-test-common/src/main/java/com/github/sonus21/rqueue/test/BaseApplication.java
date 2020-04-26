@@ -23,6 +23,7 @@ import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
@@ -44,12 +45,12 @@ public abstract class BaseApplication {
   @Value("${spring.redis.host}")
   private String redisHost;
 
-  @Value("${use.local.redis:false}")
-  private boolean useLocalRedis;
+  @Value("${use.system.redis:false}")
+  private boolean useSystemRedis;
 
   @PostConstruct
   public void postConstruct() {
-    if (useLocalRedis) {
+    if (useSystemRedis) {
       return;
     }
     if (redisServer == null) {
@@ -88,8 +89,10 @@ public abstract class BaseApplication {
   }
 
   @Bean
-  public RedisMessageListenerContainer container() {
-    return new RedisMessageListenerContainer();
+  public RedisMessageListenerContainer container(RedisConnectionFactory redisConnectionFactory) {
+    RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+    container.setConnectionFactory(redisConnectionFactory);
+    return container;
   }
 
   @Bean

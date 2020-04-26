@@ -22,6 +22,7 @@ import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.listener.RqueueMessageHandler;
 import com.github.sonus21.rqueue.listener.RqueueMessageListenerContainer;
 import com.github.sonus21.rqueue.producer.RqueueMessageSender;
+import com.github.sonus21.rqueue.producer.RqueueMessageSenderImpl;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
@@ -68,9 +69,9 @@ public class RqueueListenerAutoConfig extends RqueueListenerBaseConfig {
   @ConditionalOnMissingBean
   public RqueueMessageSender rqueueMessageSender(RqueueMessageTemplate rqueueMessageTemplate) {
     if (simpleRqueueListenerContainerFactory.getMessageConverters() != null) {
-      return new RqueueMessageSender(
+      return new RqueueMessageSenderImpl(
           rqueueMessageTemplate, simpleRqueueListenerContainerFactory.getMessageConverters());
     }
-    return new RqueueMessageSender(rqueueMessageTemplate);
+    return new RqueueMessageSenderImpl(rqueueMessageTemplate);
   }
 }

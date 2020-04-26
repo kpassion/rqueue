@@ -32,9 +32,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import com.github.sonus21.rqueue.test.BaseApplication;
 
 @PropertySource("classpath:application.properties")
-@SpringBootApplication(scanBasePackages = {"rqueue.test"})
+@SpringBootApplication(scanBasePackages = {"com.github.sonus21.rqueue.test"})
 @EnableRedisRepositories
-@EnableJpaRepositories(basePackages = {"rqueue.test.repository"})
+@EnableJpaRepositories(basePackages = {"com.github.sonus21.rqueue.test.repository"})
 @EnableTransactionManagement
 public class ApplicationWithCustomConfiguration extends BaseApplication {
   @Value("${max.workers.count:6}")
