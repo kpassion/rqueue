@@ -17,7 +17,7 @@
 package com.github.sonus21.rqueue.models.event;
 
 import com.github.sonus21.rqueue.core.RqueueMessage;
-import com.github.sonus21.rqueue.models.db.MessageMetaData;
+import com.github.sonus21.rqueue.models.db.MessageMetadata;
 import com.github.sonus21.rqueue.models.db.TaskStatus;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -29,7 +29,7 @@ public class QueueTaskEvent extends ApplicationEvent {
   private static final long serialVersionUID = -7762050873209497221L;
   private final TaskStatus status;
   private final RqueueMessage rqueueMessage;
-  private final MessageMetaData messageMetaData;
+  private final MessageMetadata messageMetaData;
   private final LocalDate localDate;
 
   /**
@@ -44,7 +44,7 @@ public class QueueTaskEvent extends ApplicationEvent {
       String queueName,
       TaskStatus status,
       RqueueMessage rqueueMessage,
-      MessageMetaData messageMetaData) {
+      MessageMetadata messageMetaData) {
     super(queueName);
     this.status = status;
     this.rqueueMessage = rqueueMessage;

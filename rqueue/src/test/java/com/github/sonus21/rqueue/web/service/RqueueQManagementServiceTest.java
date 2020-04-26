@@ -31,11 +31,11 @@ import static org.mockito.Mockito.verify;
 
 import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.listener.QueueDetail;
-import com.github.sonus21.rqueue.models.db.QueueMetaData;
+import com.github.sonus21.rqueue.models.db.QueueMetadata;
 import com.github.sonus21.rqueue.models.event.QueueInitializationEvent;
 import com.github.sonus21.rqueue.utils.QueueUtils;
-import com.github.sonus21.rqueue.web.dao.RqueueQMetaDataDao;
-import com.github.sonus21.rqueue.web.service.impl.RqueueQManagerServiceImpl;
+import com.github.sonus21.rqueue.web.dao.impl.RqueueSystemMetadataDaoImpl;
+import com.github.sonus21.rqueue.web.service.impl.RqueueSystemManagerServiceImpl;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,9 +47,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 public class RqueueQManagementServiceTest {
   private RqueueRedisTemplate<String> rqueueRedisTemplate = mock(RqueueRedisTemplate.class);
-  private RqueueQMetaDataDao rqueueQMetaDataDao = mock(RqueueQMetaDataDao.class);
-  private RqueueQManagerServiceImpl rqueueQRegistrationService =
-      new RqueueQManagerServiceImpl(rqueueRedisTemplate, rqueueQMetaDataDao);
+  private RqueueSystemMetadataDaoImpl rqueueQMetaDataDao = mock(RqueueSystemMetadataDaoImpl.class);
+  private RqueueSystemManagerServiceImpl rqueueQRegistrationService =
+      new RqueueSystemManagerServiceImpl(rqueueRedisTemplate, rqueueQMetaDataDao);
   private String queue1 = "queue-1";
   private String queue2 = "queue-2";
   private String queue3 = "queue-3";
@@ -71,7 +71,7 @@ public class RqueueQManagementServiceTest {
     QueueInitializationEvent queueInitializationEvent =
         new QueueInitializationEvent("Container", queueDetailMap, false);
     rqueueQRegistrationService.onApplicationEvent(queueInitializationEvent);
-    verify(rqueueQMetaDataDao, times(0)).get(anyString());
+    verify(rqueueQMetaDataDao, times(0)).getQMetadata(anyString());
     verify(rqueueRedisTemplate, times(0)).addToSet(anyString());
   }
 
@@ -81,7 +81,7 @@ public class RqueueQManagementServiceTest {
         new QueueInitializationEvent("Container", queueDetailMap, true);
     doAnswer(
             invocation -> {
-              QueueMetaData queueMetaData = (QueueMetaData) invocation.getArgument(0);
+              QueueMetadata queueMetaData = (QueueMetadata) invocation.getArgument(0);
               if (queue1.equals(queueMetaData.getName())) {
                 assertEquals(0, queueMetaData.getDeadLetterQueues().size());
                 assertFalse(queueMetaData.isDelayed());
@@ -99,9 +99,9 @@ public class RqueueQManagementServiceTest {
               return null;
             })
         .when(rqueueQMetaDataDao)
-        .save(any());
+        .saveQMetadata(any());
     rqueueQRegistrationService.onApplicationEvent(queueInitializationEvent);
-    verify(rqueueQMetaDataDao, times(2)).get(anyString());
+    verify(rqueueQMetaDataDao, times(2)).getQMetadata(anyString());
     verify(rqueueRedisTemplate, times(1)).addToSet(anyString(), any());
   }
 
@@ -110,13 +110,13 @@ public class RqueueQManagementServiceTest {
     QueueInitializationEvent queueInitializationEvent =
         new QueueInitializationEvent(
             "Container", Collections.singletonMap(queue3, queueDetail3), true);
-    QueueMetaData dbQueueMetaDate =
-        new QueueMetaData(QueueUtils.getMetaDataKey(queue3), queue3, -1, false, 1000L);
-    doReturn(dbQueueMetaDate).when(rqueueQMetaDataDao).get(dbQueueMetaDate.getId());
+    QueueMetadata dbQueueMetaDate =
+        new QueueMetadata(QueueUtils.getMetaDataKey(queue3), queue3, -1, false, 1000L);
+    doReturn(dbQueueMetaDate).when(rqueueQMetaDataDao).getQMetadata(dbQueueMetaDate.getId());
 
     doAnswer(
             invocation -> {
-              QueueMetaData queueMetaData = (QueueMetaData) invocation.getArguments()[0];
+              QueueMetadata queueMetaData = (QueueMetadata) invocation.getArguments()[0];
               if (queue3.equals(queueMetaData.getName())) {
                 assertEquals(
                     Collections.singleton(deadLetterQueue3), queueMetaData.getDeadLetterQueues());
@@ -129,9 +129,9 @@ public class RqueueQManagementServiceTest {
               return null;
             })
         .when(rqueueQMetaDataDao)
-        .save(any());
+        .saveQMetadata(any());
     rqueueQRegistrationService.onApplicationEvent(queueInitializationEvent);
-    verify(rqueueQMetaDataDao, times(1)).get(anyString());
+    verify(rqueueQMetaDataDao, times(1)).getQMetadata(anyString());
     verify(rqueueRedisTemplate, times(1)).addToSet(eq("__rq::queues"), any());
   }
 }

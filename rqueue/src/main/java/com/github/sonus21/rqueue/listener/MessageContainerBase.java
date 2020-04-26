@@ -18,9 +18,7 @@ package com.github.sonus21.rqueue.listener;
 
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import java.lang.ref.WeakReference;
-import java.util.List;
 import java.util.Objects;
-import org.springframework.messaging.converter.MessageConverter;
 
 class MessageContainerBase {
   protected final WeakReference<RqueueMessageListenerContainer> container;
@@ -31,14 +29,6 @@ class MessageContainerBase {
 
   MessageContainerBase(WeakReference<RqueueMessageListenerContainer> container) {
     this.container = container;
-  }
-
-  RqueueMessageHandler getMessageHandler() {
-    return Objects.requireNonNull(container.get()).getRqueueMessageHandler();
-  }
-
-  protected List<MessageConverter> getMessageConverters() {
-    return getMessageHandler().getMessageConverters();
   }
 
   protected RqueueMessageTemplate getRqueueMessageTemplate() {

@@ -19,9 +19,7 @@ package com.github.sonus21.rqueue.listener;
 import static com.github.sonus21.rqueue.utils.Constants.DEFAULT_WORKER_COUNT_PER_QUEUE;
 import static org.springframework.util.Assert.notNull;
 
-import com.github.sonus21.rqueue.config.RqueueConfig;
 import com.github.sonus21.rqueue.config.RqueueWebConfig;
-import com.github.sonus21.rqueue.core.RqueueMessageMetaDataService;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.core.support.MessageProcessor;
 import com.github.sonus21.rqueue.metrics.RqueueCounter;
@@ -29,6 +27,7 @@ import com.github.sonus21.rqueue.models.ThreadCount;
 import com.github.sonus21.rqueue.models.event.QueueInitializationEvent;
 import com.github.sonus21.rqueue.utils.Constants;
 import com.github.sonus21.rqueue.utils.ThreadUtils;
+import com.github.sonus21.rqueue.web.service.RqueueMessageMetadataService;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +49,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
+/**
+ * Container providing asynchronous behaviour for Rqueue message listeners. Handles the low level
+ * details of listening, converting and message dispatching.
+ *
+ * @see com.github.sonus21.rqueue.config.SimpleRqueueListenerContainerFactory
+ */
 @Slf4j
 public class RqueueMessageListenerContainer
     implements InitializingBean, DisposableBean, SmartLifecycle, BeanNameAware {
@@ -62,15 +67,15 @@ public class RqueueMessageListenerContainer
   private MessageProcessor deadLetterQueueMessageProcessor;
   private MessageProcessor manualDeletionMessageProcessor;
   private MessageProcessor postExecutionMessageProcessor;
+  private MessageProcessor preExecutionMessageProcessor;
+
+  @Autowired private ApplicationEventPublisher applicationEventPublisher;
+  @Autowired private RqueueWebConfig rqueueWebConfig;
 
   @Autowired(required = false)
-  RqueueCounter rqueueCounter;
+  private RqueueCounter rqueueCounter;
 
-  @Autowired ApplicationEventPublisher applicationEventPublisher;
-  @Autowired RqueueWebConfig rqueueWebConfig;
-  @Autowired RqueueConfig rqueueConfig;
-
-  @Autowired private RqueueMessageMetaDataService messageMetaDataService;
+  @Autowired private RqueueMessageMetadataService rqueueMessageMetadataService;
 
   private Integer maxNumWorkers;
   private String beanName;
@@ -98,6 +103,7 @@ public class RqueueMessageListenerContainer
     this.deadLetterQueueMessageProcessor = this.discardMessageProcessor;
     this.manualDeletionMessageProcessor = this.discardMessageProcessor;
     this.postExecutionMessageProcessor = this.discardMessageProcessor;
+    this.preExecutionMessageProcessor = this.discardMessageProcessor;
   }
 
   public RqueueMessageTemplate getRqueueMessageTemplate() {
@@ -186,6 +192,7 @@ public class RqueueMessageListenerContainer
    * through an explicit call to {@link #start()} and {@link #stop()}, and analogous to a plain
    * {@link Lifecycle} implementation.
    *
+   * @param autoStartup true/false
    * @see #start()
    * @see #stop()
    * @see Lifecycle#stop()
@@ -306,7 +313,7 @@ public class RqueueMessageListenerContainer
   }
 
   protected void startQueue(String queueName, QueueDetail queueDetail) {
-    if (queueRunningState.containsKey(queueName) && queueRunningState.get(queueName)) {
+    if (Boolean.TRUE.equals(queueRunningState.get(queueName))) {
       return;
     }
     queueRunningState.put(queueName, true);
@@ -402,8 +409,8 @@ public class RqueueMessageListenerContainer
     return this.deadLetterQueueMessageProcessor;
   }
 
-  RqueueMessageMetaDataService getMessageMetaDataService() {
-    return messageMetaDataService;
+  RqueueMessageMetadataService getRqueueMessageMetadataService() {
+    return rqueueMessageMetadataService;
   }
 
   public MessageProcessor getManualDeletionMessageProcessor() {
@@ -432,5 +439,26 @@ public class RqueueMessageListenerContainer
   public void setPostExecutionMessageProcessor(MessageProcessor postExecutionMessageProcessor) {
     notNull(postExecutionMessageProcessor, "postExecutionMessageProcessor cannot be null");
     this.postExecutionMessageProcessor = postExecutionMessageProcessor;
+  }
+
+  public MessageProcessor getPreExecutionMessageProcessor() {
+    return preExecutionMessageProcessor;
+  }
+
+  public void setPreExecutionMessageProcessor(MessageProcessor preExecutionMessageProcessor) {
+    notNull(preExecutionMessageProcessor, "preExecutionMessageProcessor cannot be null");
+    this.preExecutionMessageProcessor = preExecutionMessageProcessor;
+  }
+
+  public RqueueCounter getRqueueCounter() {
+    return rqueueCounter;
+  }
+
+  public RqueueWebConfig getRqueueWebConfig() {
+    return rqueueWebConfig;
+  }
+
+  public ApplicationEventPublisher getApplicationEventPublisher() {
+    return applicationEventPublisher;
   }
 }

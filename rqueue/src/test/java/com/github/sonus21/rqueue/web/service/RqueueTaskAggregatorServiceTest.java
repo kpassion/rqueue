@@ -28,7 +28,7 @@ import com.github.sonus21.rqueue.config.RqueueWebConfig;
 import com.github.sonus21.rqueue.core.RqueueMessage;
 import com.github.sonus21.rqueue.exception.TimedOutException;
 import com.github.sonus21.rqueue.models.aggregator.TasksStat;
-import com.github.sonus21.rqueue.models.db.MessageMetaData;
+import com.github.sonus21.rqueue.models.db.MessageMetadata;
 import com.github.sonus21.rqueue.models.db.QueueStatistics;
 import com.github.sonus21.rqueue.models.db.QueueStatisticsTest;
 import com.github.sonus21.rqueue.models.db.TaskStatus;
@@ -73,7 +73,7 @@ public class RqueueTaskAggregatorServiceTest {
   private QueueTaskEvent generateTaskEventWithStatus(TaskStatus status) {
     double r = Math.random();
     RqueueMessage rqueueMessage = new RqueueMessage("test-queue", "test", null, null);
-    MessageMetaData messageMetaData = new MessageMetaData(rqueueMessage.getId());
+    MessageMetadata messageMetaData = new MessageMetadata(rqueueMessage.getId());
     messageMetaData.setTotalExecutionTime(10 + (long) r * 10000);
     rqueueMessage.setFailureCount((int) r * 10);
     return new QueueTaskEvent(queueName, status, rqueueMessage, messageMetaData);
@@ -109,7 +109,7 @@ public class RqueueTaskAggregatorServiceTest {
         break;
     }
     RqueueMessage rqueueMessage = event.getRqueueMessage();
-    MessageMetaData messageMetaData = event.getMessageMetaData();
+    MessageMetadata messageMetaData = event.getMessageMetaData();
     if (rqueueMessage.getFailureCount() != 0) {
       stats.retried += 1;
     }

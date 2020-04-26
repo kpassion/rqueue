@@ -16,7 +16,7 @@
 
 package com.github.sonus21.rqueue.web.service;
 
-import com.github.sonus21.rqueue.models.db.QueueMetaData;
+import com.github.sonus21.rqueue.models.db.QueueMetadata;
 import com.github.sonus21.rqueue.models.request.MoveMessageRequest;
 import com.github.sonus21.rqueue.models.response.BooleanResponse;
 import com.github.sonus21.rqueue.models.response.MoveMessageResponse;
@@ -27,7 +27,7 @@ public interface RqueueDashboardUtilityService {
 
   List<String> getQueues();
 
-  List<QueueMetaData> getQueueMetadata(List<String> queues);
+  List<QueueMetadata> getQueueMetadata(List<String> queues);
 
   BooleanResponse deleteMessage(String queueName, String id);
 

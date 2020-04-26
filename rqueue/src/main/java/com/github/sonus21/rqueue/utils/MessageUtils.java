@@ -26,7 +26,7 @@ public class MessageUtils {
   public MessageUtils() {}
 
   public static Object convertMessageToObject(
-      Message<?> message, List<MessageConverter> messageConverters) {
+      Message<String> message, List<MessageConverter> messageConverters) {
     notEmpty(messageConverters, "messageConverters cannot be empty");
     for (MessageConverter messageConverter : messageConverters) {
       try {

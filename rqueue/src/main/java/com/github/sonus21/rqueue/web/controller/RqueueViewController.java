@@ -17,7 +17,7 @@
 package com.github.sonus21.rqueue.web.controller;
 
 import com.github.sonus21.rqueue.config.RqueueConfig;
-import com.github.sonus21.rqueue.models.db.QueueMetaData;
+import com.github.sonus21.rqueue.models.db.QueueMetadata;
 import com.github.sonus21.rqueue.models.db.TaskStatus;
 import com.github.sonus21.rqueue.models.enums.AggregationType;
 import com.github.sonus21.rqueue.models.enums.DataType;
@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import org.jtwig.spring.JtwigViewResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,14 +47,23 @@ import org.springframework.web.servlet.View;
 
 @Controller
 @RequestMapping("rqueue")
-@AllArgsConstructor(onConstructor = @__(@Autowired))
 public class RqueueViewController {
-  @Qualifier("rqueueViewResolver")
   private final JtwigViewResolver rqueueViewResolver;
-
   private final RqueueConfig rqueueConfig;
   private final RqueueQDetailService rqueueQDetailService;
   private final RqueueDashboardUtilityService rqueueDashboardUtilityService;
+
+  @Autowired
+  public RqueueViewController(
+      @Qualifier("rqueueViewResolver") JtwigViewResolver rqueueViewResolver,
+      RqueueConfig rqueueConfig,
+      RqueueQDetailService rqueueQDetailService,
+      RqueueDashboardUtilityService rqueueDashboardUtilityService) {
+    this.rqueueViewResolver = rqueueViewResolver;
+    this.rqueueConfig = rqueueConfig;
+    this.rqueueQDetailService = rqueueQDetailService;
+    this.rqueueDashboardUtilityService = rqueueDashboardUtilityService;
+  }
 
   private void addNavData(Model model, NavTab tab) {
     for (NavTab navTab : NavTab.values()) {
@@ -88,9 +96,9 @@ public class RqueueViewController {
     addBasicDetails(model);
     addNavData(model, NavTab.QUEUES);
     model.addAttribute("title", "Queues");
-    List<QueueMetaData> queueMetaData =
+    List<QueueMetadata> queueMetaData =
         rqueueQDetailService.getQueueMetadata().stream()
-            .sorted(Comparator.comparing(QueueMetaData::getName))
+            .sorted(Comparator.comparing(QueueMetadata::getName))
             .collect(Collectors.toList());
     List<Entry<String, List<Entry<NavTab, DataStructureMetaData>>>> queueNameMetaData =
         new ArrayList<>(
@@ -110,7 +118,7 @@ public class RqueueViewController {
     model.addAttribute("queueActive", true);
     model.addAttribute("aggregatorTypes", AggregationType.values());
     model.addAttribute("typeSelectors", TaskStatus.getActiveChartStatus());
-    QueueMetaData metaData = rqueueQDetailService.getMeta(queueName);
+    QueueMetadata metaData = rqueueQDetailService.getMeta(queueName);
     model.addAttribute("queueActions", rqueueQDetailService.getNavTabs(metaData));
     model.addAttribute(
         "queueMetaDataStructures", rqueueQDetailService.getQueueDataStructureDetails(metaData));

@@ -19,7 +19,7 @@ package com.github.sonus21.rqueue.spring.boot.tests.integration;
 import static com.github.sonus21.rqueue.utils.TimeUtils.waitFor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static rqueue.test.TestUtils.buildMessage;
+import static com.github.sonus21.rqueue.test.TestUtils.buildMessage;
 
 import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
@@ -36,7 +36,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import rqueue.test.dto.Email;
+import com.github.sonus21.rqueue.test.dto.Email;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ApplicationListenerDisabled.class)

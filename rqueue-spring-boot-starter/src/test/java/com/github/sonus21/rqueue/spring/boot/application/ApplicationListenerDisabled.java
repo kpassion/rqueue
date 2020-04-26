@@ -21,7 +21,7 @@ import com.github.sonus21.rqueue.core.RqueueMessageTemplateImpl;
 import com.github.sonus21.rqueue.listener.QueueDetail;
 import com.github.sonus21.rqueue.listener.RqueueMessageHandler;
 import com.github.sonus21.rqueue.listener.RqueueMessageListenerContainer;
-import com.github.sonus21.rqueue.core.support.MessageProcessor;
+import com.github.sonus21.rqueue.test.BaseApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +30,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import rqueue.test.BaseApplication;
 
 @PropertySource("classpath:application.properties")
-@SpringBootApplication(scanBasePackages = {"rqueue.test"})
+@SpringBootApplication(scanBasePackages = {"com.github.sonus21.rqueue.test"})
 @EnableRedisRepositories
-@EnableJpaRepositories(basePackages = {"rqueue.test.repository"})
+@EnableJpaRepositories(basePackages = {"com.github.sonus21.rqueue.test.repository"})
 @EnableTransactionManagement
 public class ApplicationListenerDisabled extends BaseApplication {
   public static void main(String[] args) {
@@ -51,13 +50,7 @@ public class ApplicationListenerDisabled extends BaseApplication {
   @Bean
   public RqueueMessageListenerContainer rqueueMessageListenerContainer(
       RqueueMessageHandler rqueueMessageHandler, RqueueMessageTemplate rqueueMessageTemplate) {
-    return new RqueueMessageListenerContainer(
-        rqueueMessageHandler,
-        rqueueMessageTemplate,
-        new MessageProcessor() {},
-        new MessageProcessor() {},
-        new MessageProcessor() {},
-        new MessageProcessor() {}) {
+    return new RqueueMessageListenerContainer(rqueueMessageHandler, rqueueMessageTemplate) {
       @Override
       protected void startQueue(String queueName, QueueDetail queueDetail) {}
     };

@@ -19,12 +19,11 @@ package com.github.sonus21.rqueue.config;
 import static com.github.sonus21.rqueue.utils.RedisUtils.getRedisTemplate;
 
 import com.github.sonus21.rqueue.common.RqueueLockManager;
-import com.github.sonus21.rqueue.common.RqueueLockManagerImpl;
 import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
+import com.github.sonus21.rqueue.common.impl.RqueueLockManagerImpl;
 import com.github.sonus21.rqueue.config.support.SchedulerEnabled;
 import com.github.sonus21.rqueue.core.DelayedMessageScheduler;
 import com.github.sonus21.rqueue.core.ProcessingMessageScheduler;
-import com.github.sonus21.rqueue.core.RqueueMessageMetaDataService;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplateImpl;
 import com.github.sonus21.rqueue.core.RqueueRedisListenerContainerFactory;
@@ -63,7 +62,8 @@ public abstract class RqueueListenerBaseConfig {
    * 1st priority is given to container factory. This redis connection factory is used to connect to
    * Database for different ops.
    *
-   * @return {@link RedisConnectionFactory} object
+   * @param beanFactory configurable bean factory
+   * @return {@link RedisConnectionFactory} object.
    */
   @Bean
   public RqueueConfig rqueueConfig(ConfigurableBeanFactory beanFactory) {
@@ -92,6 +92,7 @@ public abstract class RqueueListenerBaseConfig {
    * priority is given to container factory. Message template is used to serialize message and
    * sending message to Redis.
    *
+   * @param rqueueConfig rqueue config object
    * @return {@link RqueueMessageTemplate} object
    */
   protected RqueueMessageTemplate getMessageTemplate(RqueueConfig rqueueConfig) {
@@ -147,11 +148,6 @@ public abstract class RqueueListenerBaseConfig {
   public RqueueLockManager rqueueLockManager(
       @Qualifier("stringRqueueRedisTemplate") RqueueRedisTemplate<String> rqueueRedisTemplate) {
     return new RqueueLockManagerImpl(rqueueRedisTemplate);
-  }
-
-  @Bean
-  public RqueueMessageMetaDataService rqueueMessageMetaDataService(RqueueConfig rqueueConfig) {
-    return new RqueueMessageMetaDataService(rqueueConfig.getConnectionFactory());
   }
 
   @Bean

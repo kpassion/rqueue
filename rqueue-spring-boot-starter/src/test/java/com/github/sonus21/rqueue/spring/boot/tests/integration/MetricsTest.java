@@ -25,7 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import rqueue.test.tests.MetricTestBase;
+import com.github.sonus21.rqueue.test.tests.MetricTestBase;
 
 @SpringBootTest
 @RunWith(SpringJUnit4ClassRunner.class)

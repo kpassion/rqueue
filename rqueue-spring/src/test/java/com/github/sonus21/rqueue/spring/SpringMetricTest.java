@@ -25,7 +25,7 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
-import rqueue.test.tests.MetricTestBase;
+import com.github.sonus21.rqueue.test.tests.MetricTestBase;
 
 @ContextConfiguration(classes = AppWithMetricEnabled.class)
 @RunWith(SpringJUnit4ClassRunner.class)

@@ -26,14 +26,13 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.github.sonus21.rqueue.core.RqueueMessage;
-import com.github.sonus21.rqueue.core.RqueueMessageMetaDataService;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
-import com.github.sonus21.rqueue.models.db.MessageMetaData;
 import com.github.sonus21.rqueue.core.support.MessageProcessor;
+import com.github.sonus21.rqueue.models.db.MessageMetadata;
 import com.github.sonus21.rqueue.utils.QueueUtils;
+import com.github.sonus21.rqueue.web.service.RqueueMessageMetadataService;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.List;
@@ -52,10 +51,11 @@ public class MessageExecutorTest {
   private RqueueMessageListenerContainer container = mock(RqueueMessageListenerContainer.class);
   private WeakReference<RqueueMessageListenerContainer> containerWeakReference =
       new WeakReference<>(container);
-  private RqueueMessageMetaDataService rqueueMessageMetaDataService =
-      mock(RqueueMessageMetaDataService.class);
+  private RqueueMessageMetadataService rqueueMessageMetaDataService =
+      mock(RqueueMessageMetadataService.class);
   private TestMessageProcessor deadLetterProcessor = new TestMessageProcessor();
   private TestMessageProcessor discardProcessor = new TestMessageProcessor();
+  private TestMessageProcessor preProcessMessageProcessor = new TestMessageProcessor();
   private RqueueMessageTemplate messageTemplate = mock(RqueueMessageTemplate.class);
   private RqueueMessageHandler messageHandler = mock(RqueueMessageHandler.class);
   private RqueueMessage rqueueMessage = new RqueueMessage();
@@ -66,13 +66,13 @@ public class MessageExecutorTest {
         Collections.singletonList(new GenericMessageConverter());
     rqueueMessage.setMessage("test message");
     rqueueMessage.setId(UUID.randomUUID().toString());
-    doReturn(rqueueMessageMetaDataService).when(container).getMessageMetaDataService();
+    doReturn(rqueueMessageMetaDataService).when(container).getRqueueMessageMetadataService();
     doReturn(deadLetterProcessor).when(container).getDeadLetterQueueMessageProcessor();
     doReturn(discardProcessor).when(container).getDiscardMessageProcessor();
     doReturn(true).when(container).isQueueActive(anyString());
     doReturn(messageTemplate).when(container).getRqueueMessageTemplate();
-    doReturn(messageHandler).when(container).getRqueueMessageHandler();
     doReturn(messageConverterList).when(messageHandler).getMessageConverters();
+    doReturn(preProcessMessageProcessor).when(container).getPreExecutionMessageProcessor();
     doThrow(new MessagingException("Failing for some reason."))
         .when(messageHandler)
         .handleMessage(any());
@@ -82,7 +82,7 @@ public class MessageExecutorTest {
   public void callDiscardProcessor() {
     QueueDetail queueDetail = new QueueDetail("test", 3, "", false, 900000);
     MessageExecutor messageExecutor =
-        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference);
+        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference, messageHandler);
     messageExecutor.run();
     assertEquals(1, discardProcessor.getCount());
   }
@@ -92,7 +92,7 @@ public class MessageExecutorTest {
     QueueDetail queueDetail = new QueueDetail("test", 3, "dead-test", false, 900000);
 
     MessageExecutor messageExecutor =
-        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference);
+        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference, messageHandler);
     messageExecutor.run();
     assertEquals(1, deadLetterProcessor.getCount());
   }
@@ -101,7 +101,7 @@ public class MessageExecutorTest {
   public void messageIsParkedForRetry() {
     QueueDetail queueDetail = new QueueDetail("test", 1000, "", false, 0);
     MessageExecutor messageExecutor =
-        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference);
+        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference, messageHandler);
     doThrow(new MessagingException("Failing on purpose")).when(messageHandler).handleMessage(any());
     messageExecutor.run();
     verify(messageTemplate, times(1))
@@ -115,21 +115,21 @@ public class MessageExecutorTest {
   public void messageIsNotExecutedWhenDeletedManually() {
     QueueDetail queueDetail = new QueueDetail("test", 3, "", false, 0);
     MessageExecutor messageExecutor =
-        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference);
-    MessageMetaData messageMetaData = new MessageMetaData();
+        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference, messageHandler);
+    MessageMetadata messageMetaData = new MessageMetadata();
     messageMetaData.setDeleted(true);
     doReturn(messageMetaData)
         .when(rqueueMessageMetaDataService)
         .get("__rq::m-mdata::" + rqueueMessage.getId());
     messageExecutor.run();
-    verifyNoInteractions(messageHandler);
+    verify(messageHandler, times(0)).handleMessage(any());
   }
 
   @Test
   public void messageIsDeletedWhileExecuting() {
     QueueDetail queueDetail = new QueueDetail("test", 3, "", false, 0);
     MessageExecutor messageExecutor =
-        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference);
+        new MessageExecutor(rqueueMessage, queueDetail, containerWeakReference, messageHandler);
     AtomicInteger atomicInteger = new AtomicInteger(0);
     doAnswer(
             invocation -> {
@@ -137,7 +137,7 @@ public class MessageExecutorTest {
                 atomicInteger.incrementAndGet();
                 return null;
               }
-              MessageMetaData messageMetaData = new MessageMetaData();
+              MessageMetadata messageMetaData = new MessageMetadata();
               messageMetaData.setDeleted(true);
               return messageMetaData;
             })
@@ -152,8 +152,9 @@ public class MessageExecutorTest {
     private int count;
 
     @Override
-    public void process(Object message) {
+    public boolean process(Object message) {
       count += 1;
+      return true;
     }
 
     public void clear() {

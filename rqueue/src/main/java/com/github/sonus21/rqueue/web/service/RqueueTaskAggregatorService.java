@@ -23,8 +23,9 @@ import com.github.sonus21.rqueue.config.RqueueWebConfig;
 import com.github.sonus21.rqueue.core.RqueueMessage;
 import com.github.sonus21.rqueue.models.aggregator.QueueEvents;
 import com.github.sonus21.rqueue.models.aggregator.TasksStat;
-import com.github.sonus21.rqueue.models.db.MessageMetaData;
+import com.github.sonus21.rqueue.models.db.MessageMetadata;
 import com.github.sonus21.rqueue.models.db.QueueStatistics;
+import com.github.sonus21.rqueue.models.db.TaskStatus;
 import com.github.sonus21.rqueue.models.event.QueueTaskEvent;
 import com.github.sonus21.rqueue.utils.Constants;
 import com.github.sonus21.rqueue.utils.QueueUtils;
@@ -41,8 +42,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,19 +52,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 @Service
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Slf4j
 public class RqueueTaskAggregatorService
     implements ApplicationListener<QueueTaskEvent>, DisposableBean, SmartLifecycle {
-  @NonNull private final RqueueWebConfig rqueueWebConfig;
-  @NonNull private final RqueueLockManager rqueueLockManager;
-  @NonNull private final RqueueQStatsDao rqueueQStatsDao;
+  private final RqueueWebConfig rqueueWebConfig;
+  private final RqueueLockManager rqueueLockManager;
+  private final RqueueQStatsDao rqueueQStatsDao;
   private final Object lifecycleMgr = new Object();
   private boolean running = false;
   private boolean stopped = false;
   private ThreadPoolTaskScheduler taskExecutor;
   private Map<String, QueueEvents> queueNameToEvents;
   private BlockingQueue<QueueEvents> queue;
+
+  @Autowired
+  public RqueueTaskAggregatorService(
+      RqueueWebConfig rqueueWebConfig,
+      RqueueLockManager rqueueLockManager,
+      RqueueQStatsDao rqueueQStatsDao) {
+    this.rqueueWebConfig = rqueueWebConfig;
+    this.rqueueLockManager = rqueueLockManager;
+    this.rqueueQStatsDao = rqueueQStatsDao;
+  }
 
   @Override
   public void destroy() throws Exception {
@@ -125,8 +133,7 @@ public class RqueueTaskAggregatorService
         queueEvents.addEvent(event);
       }
       if (queueEvents.processingRequired(
-          rqueueWebConfig.getAggregateEventWaitTime(),
-          rqueueWebConfig.getAggregateEventCount())) {
+          rqueueWebConfig.getAggregateEventWaitTime(), rqueueWebConfig.getAggregateEventCount())) {
         if (log.isTraceEnabled()) {
           log.trace("Adding events to the queue");
         }
@@ -140,19 +147,15 @@ public class RqueueTaskAggregatorService
 
   private class EventAggregator implements Runnable {
     private void aggregate(QueueTaskEvent event, TasksStat stat) {
-      switch (event.getStatus()) {
-        case DISCARDED:
-          stat.discarded += 1;
-          break;
-        case SUCCESSFUL:
-          stat.success += 1;
-          break;
-        case MOVED_TO_DLQ:
-          stat.movedToDlq += 1;
-          break;
+      if (event.getStatus() == TaskStatus.DISCARDED) {
+        stat.discarded += 1;
+      } else if (event.getStatus() == TaskStatus.SUCCESSFUL) {
+        stat.success += 1;
+      } else if (event.getStatus() == TaskStatus.MOVED_TO_DLQ) {
+        stat.movedToDlq += 1;
       }
       RqueueMessage rqueueMessage = event.getRqueueMessage();
-      MessageMetaData messageMetaData = event.getMessageMetaData();
+      MessageMetadata messageMetaData = event.getMessageMetaData();
       if (rqueueMessage.getFailureCount() != 0) {
         stat.retried += 1;
       }

@@ -32,11 +32,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import rqueue.test.dto.Email;
-import rqueue.test.dto.Job;
-import rqueue.test.dto.Notification;
-import rqueue.test.service.ConsumedMessageService;
-import rqueue.test.service.FailureManager;
+import com.github.sonus21.rqueue.test.dto.Email;
+import com.github.sonus21.rqueue.test.dto.Job;
+import com.github.sonus21.rqueue.test.dto.Notification;
+import com.github.sonus21.rqueue.test.service.ConsumedMessageService;
+import com.github.sonus21.rqueue.test.service.FailureManager;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = Application.class)

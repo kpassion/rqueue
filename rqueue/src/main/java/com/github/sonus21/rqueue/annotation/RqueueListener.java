@@ -30,11 +30,10 @@ import java.lang.annotation.Target;
  *
  * <p>All fields support SpEL(Spring Expression Language) as well property placeholder.
  *
- *
- * <pre>{@code
- * @Component
+ * <pre>
+ * &amp;Component
  * public class MessageListener {
- * @RqueueListner(
+ * &amp;RqueueListener(
  *       value="${job.queue}",
  *      delayedQueue="true",
  *      numRetries="3",
@@ -44,21 +43,15 @@ import java.lang.annotation.Target;
  *      // do something
  *   }
  * }
+ * </pre>
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RqueueListener {
   /**
-   * List of queues. Queues can be defined by their name, placeholder that would be resolved to
-   * properties file or could be list of comma separated queue names.
-   *
-   * <pre>{@code
-   * @RqueueListener( value="queue", ...)
-   *
-   * @RqueueListener( value="queue1,queue2", ...)
-   *
-   * @RqueueListener( value="${queue.name}", ...)
+   * List of unique queues. Queues can be defined by their name, placeholder that would be resolved
+   * to properties file or could be list of comma separated queue names.
    *
    * @return list of queues.
    */
@@ -117,11 +110,11 @@ public @interface RqueueListener {
    * 1. Actual Task execution time <br>
    * 2. Redis call time and thread busyness.
    *
-   * <p>NOTE: * If provided time is too small then same messages would be consumed by multiple
+   * <p><b>NOTE:</b>If provided time is too small then same messages would be consumed by multiple
    * listeners, that can cause problem in the application. On the other-side if provided time is too
    * high then the message would be hidden from other consumers for a long time.
    *
-   * <p>NOTE: This time is in milli seconds
+   * <p><b>NOTE:</b> This time is in milli seconds
    *
    * @return visibilityTimeout visibility timeout
    */

@@ -18,6 +18,7 @@ package com.github.sonus21.rqueue.spring.app;
 
 import com.github.sonus21.rqueue.spring.EnableRqueue;
 import com.github.sonus21.rqueue.spring.RqueueMetricsProperties;
+import com.github.sonus21.rqueue.test.BaseApplication;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
@@ -26,10 +27,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import rqueue.test.BaseApplication;
 
 @Configuration
-@ComponentScan(basePackages = {"rqueue.test", "com.github.sonus21.rqueue.spring.services"})
+@ComponentScan(
+    basePackages = {"com.github.sonus21.rqueue.test", "com.github.sonus21.rqueue.spring.services"})
 @EnableRqueue
 @EnableWebMvc
 @PropertySource("classpath:application.properties")

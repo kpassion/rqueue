@@ -27,8 +27,8 @@ import static org.mockito.Mockito.mock;
 
 import com.github.sonus21.rqueue.annotation.RqueueListener;
 import com.github.sonus21.rqueue.core.RqueueMessage;
-import com.github.sonus21.rqueue.core.RqueueMessageMetaDataService;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
+import com.github.sonus21.rqueue.web.service.RqueueMessageMetadataService;
 import io.lettuce.core.RedisCommandExecutionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -54,7 +54,7 @@ public class RqueueMessageListenerContainerTest {
   @Before
   public void init() throws IllegalAccessException {
     FieldUtils.writeField(
-        container, "messageMetaDataService", mock(RqueueMessageMetaDataService.class), true);
+        container, "rqueueMessageMetadataService", mock(RqueueMessageMetadataService.class), true);
   }
 
   @Test
@@ -238,7 +238,7 @@ public class RqueueMessageListenerContainerTest {
     FieldUtils.writeField(
         container, "applicationEventPublisher", mock(ApplicationEventPublisher.class), true);
     FieldUtils.writeField(
-        container, "messageMetaDataService", mock(RqueueMessageMetaDataService.class), true);
+        container, "rqueueMessageMetadataService", mock(RqueueMessageMetadataService.class), true);
 
     doAnswer(
             invocation -> {
@@ -281,7 +281,7 @@ public class RqueueMessageListenerContainerTest {
     FieldUtils.writeField(
         container, "applicationEventPublisher", mock(ApplicationEventPublisher.class), true);
     FieldUtils.writeField(
-        container, "messageMetaDataService", mock(RqueueMessageMetaDataService.class), true);
+        container, "rqueueMessageMetadataService", mock(RqueueMessageMetadataService.class), true);
     FastMessageSchedulerListener fastMessageListener =
         applicationContext.getBean("fastMessageListener", FastMessageSchedulerListener.class);
     SlowMessageSchedulerListener slowMessageListener =

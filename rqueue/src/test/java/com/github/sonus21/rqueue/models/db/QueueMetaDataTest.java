@@ -29,7 +29,7 @@ public class QueueMetaDataTest {
 
   @Test
   public void addDeadLetterQueue() {
-    QueueMetaData queueMetaData = new QueueMetaData();
+    QueueMetadata queueMetaData = new QueueMetadata();
     Set<String> queues = new HashSet<>();
     queues.add("test-dlq");
     assertTrue(queueMetaData.addDeadLetterQueue("test-dlq"));
@@ -43,7 +43,7 @@ public class QueueMetaDataTest {
 
   @Test
   public void testVisibilityTimeout() {
-    QueueMetaData queueMetaData = new QueueMetaData();
+    QueueMetadata queueMetaData = new QueueMetadata();
     assertTrue(queueMetaData.updateVisibilityTimeout(100L));
     assertEquals(100L, queueMetaData.getVisibilityTimeout());
     assertFalse(queueMetaData.updateVisibilityTimeout(100L));
@@ -52,7 +52,7 @@ public class QueueMetaDataTest {
 
   @Test
   public void testDelay() {
-    QueueMetaData queueMetaData = new QueueMetaData();
+    QueueMetadata queueMetaData = new QueueMetadata();
     assertFalse(queueMetaData.isDelayed());
     assertTrue(queueMetaData.updateIsDelay(true));
     assertTrue(queueMetaData.isDelayed());
@@ -64,7 +64,7 @@ public class QueueMetaDataTest {
 
   @Test
   public void testConstruction() {
-    QueueMetaData queueMetaData = new QueueMetaData("__rq::q", "q", -1, true, 100L);
+    QueueMetadata queueMetaData = new QueueMetadata("__rq::q", "q", -1, true, 100L);
     assertTrue(queueMetaData.isDelayed());
     assertEquals("__rq::q", queueMetaData.getId());
     assertEquals("q", queueMetaData.getName());

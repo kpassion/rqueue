@@ -28,9 +28,7 @@ import com.github.sonus21.rqueue.models.response.StringResponse;
 import com.github.sonus21.rqueue.web.service.RqueueDashboardChartService;
 import com.github.sonus21.rqueue.web.service.RqueueDashboardUtilityService;
 import com.github.sonus21.rqueue.web.service.RqueueQDetailService;
-import com.github.sonus21.rqueue.web.service.RqueueQManagerService;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import com.github.sonus21.rqueue.web.service.RqueueSystemManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,12 +43,23 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController()
 @RequestMapping("rqueue/api/v1")
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class RqueueRestController {
-  @NonNull private final RqueueDashboardChartService rqueueDashboardChartService;
-  @NonNull private final RqueueQDetailService rqueueQDetailService;
-  @NonNull private final RqueueDashboardUtilityService rqueueDashboardUtilityService;
-  @NonNull private final RqueueQManagerService rqueueQManagerService;
+  private final RqueueDashboardChartService rqueueDashboardChartService;
+  private final RqueueQDetailService rqueueQDetailService;
+  private final RqueueDashboardUtilityService rqueueDashboardUtilityService;
+  private final RqueueSystemManagerService rqueueQManagerService;
+
+  @Autowired
+  public RqueueRestController(
+      RqueueDashboardChartService rqueueDashboardChartService,
+      RqueueQDetailService rqueueQDetailService,
+      RqueueDashboardUtilityService rqueueDashboardUtilityService,
+      RqueueSystemManagerService rqueueQManagerService) {
+    this.rqueueDashboardChartService = rqueueDashboardChartService;
+    this.rqueueQDetailService = rqueueQDetailService;
+    this.rqueueDashboardUtilityService = rqueueDashboardUtilityService;
+    this.rqueueQManagerService = rqueueQManagerService;
+  }
 
   @PostMapping("chart")
   @ResponseBody

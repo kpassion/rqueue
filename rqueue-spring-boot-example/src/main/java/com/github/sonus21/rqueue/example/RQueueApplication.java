@@ -17,12 +17,13 @@
 package com.github.sonus21.rqueue.example;
 
 import com.github.sonus21.rqueue.config.SimpleRqueueListenerContainerFactory;
+import com.github.sonus21.rqueue.listener.RqueueMessageHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
-import rqueue.test.ControllerProfiler;
+import com.github.sonus21.rqueue.test.ControllerProfiler;
 
 @SpringBootApplication()
 @EnableRedisRepositories
@@ -35,10 +36,13 @@ public class RQueueApplication {
   }
 
   @Bean
-  public SimpleRqueueListenerContainerFactory simpleRqueueListenerContainerFactory() {
+  public SimpleRqueueListenerContainerFactory simpleRqueueListenerContainerFactory(
+      RqueueMessageHandler rqueueMessageHandler) {
     SimpleRqueueListenerContainerFactory simpleRqueueListenerContainerFactory =
         new SimpleRqueueListenerContainerFactory();
     simpleRqueueListenerContainerFactory.setMaxNumWorkers(workersCount);
+
+    simpleRqueueListenerContainerFactory.setRqueueMessageHandler(rqueueMessageHandler);
     return simpleRqueueListenerContainerFactory;
   }
 

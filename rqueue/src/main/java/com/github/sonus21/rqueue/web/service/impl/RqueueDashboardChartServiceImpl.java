@@ -45,18 +45,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 @Service
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class RqueueDashboardChartServiceImpl implements RqueueDashboardChartService {
-  @NonNull private RqueueQStatsDao rqueueQStatsDao;
-  @NonNull private RqueueWebConfig rqueueWebConfig;
-  @NonNull private RqueueDashboardUtilityService rqueueDashboardUtilityService;
+  private final RqueueQStatsDao rqueueQStatsDao;
+  private final RqueueWebConfig rqueueWebConfig;
+  private final RqueueDashboardUtilityService rqueueDashboardUtilityService;
+
+
+  @Autowired
+  public RqueueDashboardChartServiceImpl(
+      RqueueQStatsDao rqueueQStatsDao,
+      RqueueWebConfig rqueueWebConfig,
+      RqueueDashboardUtilityService rqueueDashboardUtilityService) {
+    this.rqueueQStatsDao = rqueueQStatsDao;
+    this.rqueueWebConfig = rqueueWebConfig;
+    this.rqueueDashboardUtilityService = rqueueDashboardUtilityService;
+  }
 
   private List<ChartDataType> getChartDataType(List<ChartDataType> chartDataTypes) {
     if (!CollectionUtils.isEmpty(chartDataTypes)) {

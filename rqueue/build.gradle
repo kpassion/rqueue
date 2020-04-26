@@ -2,6 +2,7 @@ ext.projectDescription = 'Asynchronous and delayed task executor'
 ext.name = 'Rqueue Core Java'
 buildscript {
     apply from: "${rootDir}/gradle/code-signing.gradle"
+    apply from: "${rootDir}/gradle/packaging.gradle"
 }
 dependencies {
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core

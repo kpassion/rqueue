@@ -21,11 +21,10 @@ import static com.github.sonus21.rqueue.utils.HttpUtils.readUrl;
 
 import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.config.RqueueWebConfig;
-import com.github.sonus21.rqueue.core.RqueueMessageMetaDataService;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.exception.UnknownSwitchCase;
 import com.github.sonus21.rqueue.models.MessageMoveResult;
-import com.github.sonus21.rqueue.models.db.QueueMetaData;
+import com.github.sonus21.rqueue.models.db.QueueMetadata;
 import com.github.sonus21.rqueue.models.enums.DataType;
 import com.github.sonus21.rqueue.models.request.MoveMessageRequest;
 import com.github.sonus21.rqueue.models.response.BooleanResponse;
@@ -35,8 +34,9 @@ import com.github.sonus21.rqueue.utils.Constants;
 import com.github.sonus21.rqueue.utils.QueueUtils;
 import com.github.sonus21.rqueue.utils.RedisUtils;
 import com.github.sonus21.rqueue.utils.StringUtils;
-import com.github.sonus21.rqueue.web.dao.RqueueQMetaDataDao;
+import com.github.sonus21.rqueue.web.dao.impl.RqueueSystemMetadataDaoImpl;
 import com.github.sonus21.rqueue.web.service.RqueueDashboardUtilityService;
+import com.github.sonus21.rqueue.web.service.RqueueMessageMetadataService;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,23 +48,35 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Service
 @Slf4j
 public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtilityService {
-  @NonNull private RqueueRedisTemplate<String> stringRqueueRedisTemplate;
-  @NonNull private RqueueQMetaDataDao rqueueQMetaDataDao;
-  @NonNull private RqueueWebConfig rqueueWebConfig;
-  @NonNull private RqueueMessageTemplate rqueueMessageTemplate;
-  @NonNull private RqueueMessageMetaDataService messageMetaDataService;
+  private final RqueueRedisTemplate<String> stringRqueueRedisTemplate;
+  private final RqueueSystemMetadataDaoImpl rqueueQMetaDataDao;
+  private final RqueueWebConfig rqueueWebConfig;
+  private final RqueueMessageTemplate rqueueMessageTemplate;
+  private final RqueueMessageMetadataService messageMetaDataService;
   private String latestVersion = "NA";
   private long versionFetchTime = 0;
+
+  public RqueueDashboardUtilityServiceImpl(
+      @Qualifier("stringRqueueRedisTemplate")
+          RqueueRedisTemplate<String> stringRqueueRedisTemplate,
+      RqueueSystemMetadataDaoImpl rqueueQMetaDataDao,
+      RqueueWebConfig rqueueWebConfig,
+      RqueueMessageTemplate rqueueMessageTemplate,
+      RqueueMessageMetadataService messageMetaDataService) {
+    this.stringRqueueRedisTemplate = stringRqueueRedisTemplate;
+    this.rqueueQMetaDataDao = rqueueQMetaDataDao;
+    this.rqueueWebConfig = rqueueWebConfig;
+    this.rqueueMessageTemplate = rqueueMessageTemplate;
+    this.messageMetaDataService = messageMetaDataService;
+  }
 
   @Override
   public List<String> getQueues() {
@@ -76,13 +88,13 @@ public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtility
   }
 
   @Override
-  public List<QueueMetaData> getQueueMetadata(List<String> queues) {
+  public List<QueueMetadata> getQueueMetadata(List<String> queues) {
     Collection<String> ids = new ArrayList<>();
     if (!CollectionUtils.isEmpty(queues)) {
       ids = queues.stream().map(QueueUtils::getMetaDataKey).collect(Collectors.toList());
     }
     if (!CollectionUtils.isEmpty(ids)) {
-      return rqueueQMetaDataDao.findAll(ids);
+      return rqueueQMetaDataDao.findAllQMetadata(ids);
     }
     return Collections.emptyList();
   }
@@ -90,7 +102,7 @@ public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtility
   @Override
   public BooleanResponse deleteMessage(String queueName, String id) {
     String qMetaId = QueueUtils.getMetaDataKey(queueName);
-    QueueMetaData queueMetaData = rqueueQMetaDataDao.get(qMetaId);
+    QueueMetadata queueMetaData = rqueueQMetaDataDao.getQMetadata(qMetaId);
     BooleanResponse booleanResponse = new BooleanResponse();
     if (queueMetaData == null) {
       booleanResponse.setCode(1);
@@ -267,9 +279,9 @@ public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtility
   @Override
   public List<List<Object>> getScheduledTasks() {
     List<String> queues = getQueues();
-    List<QueueMetaData> queueMetaDatas =
+    List<QueueMetadata> queueMetaDatas =
         getQueueMetadata(queues).stream()
-            .filter(QueueMetaData::isDelayed)
+            .filter(QueueMetadata::isDelayed)
             .collect(Collectors.toList());
     List<List<Object>> rows = new ArrayList<>();
     List<Object> result = new ArrayList<>();
@@ -278,7 +290,7 @@ public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtility
           RedisUtils.executePipeLine(
               stringRqueueRedisTemplate.getRedisTemplate(),
               ((connection, keySerializer, valueSerializer) -> {
-                for (QueueMetaData queueMetaData : queueMetaDatas) {
+                for (QueueMetadata queueMetaData : queueMetaDatas) {
                   connection.zCard(
                       QueueUtils.getDelayedQueueName(queueMetaData.getName()).getBytes());
                 }
@@ -291,7 +303,7 @@ public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtility
     rows.add(headers);
     for (int i = 0; i < queueMetaDatas.size(); i++) {
       List<Object> row = new ArrayList<>();
-      QueueMetaData queueMetaData = queueMetaDatas.get(i);
+      QueueMetadata queueMetaData = queueMetaDatas.get(i);
       row.add(queueMetaData.getName());
       row.add(QueueUtils.getDelayedQueueName(queueMetaData.getName()));
       row.add(result.get(i));
@@ -327,7 +339,7 @@ public class RqueueDashboardUtilityServiceImpl implements RqueueDashboardUtility
   public List<List<Object>> getDeadLetterTasks() {
     List<String> queues = getQueues();
     List<Entry<String, String>> queueNameAndDlq = new ArrayList<>();
-    for (QueueMetaData queueMetaData : getQueueMetadata(queues)) {
+    for (QueueMetadata queueMetaData : getQueueMetadata(queues)) {
       if (queueMetaData.hasDeadLetterQueue()) {
         for (String dlq : queueMetaData.getDeadLetterQueues()) {
           queueNameAndDlq.add(new HashMap.SimpleEntry<>(queueMetaData.getName(), dlq));

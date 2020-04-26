@@ -28,8 +28,8 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
-import rqueue.test.entity.FailureDetail;
-import rqueue.test.repository.FailureDetailRepository;
+import com.github.sonus21.rqueue.test.entity.FailureDetail;
+import com.github.sonus21.rqueue.test.repository.FailureDetailRepository;
 
 @Repository
 @AllArgsConstructor

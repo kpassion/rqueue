@@ -16,44 +16,14 @@
 
 package com.github.sonus21.rqueue.web.dao;
 
-import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
-import com.github.sonus21.rqueue.config.RqueueConfig;
 import com.github.sonus21.rqueue.models.db.QueueStatistics;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
 
-@Repository
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
-public class RqueueQStatsDao {
-  @NonNull private RqueueConfig rqueueConfig;
-  private RqueueRedisTemplate<QueueStatistics> rqueueRedisTemplate;
+public interface RqueueQStatsDao {
+  QueueStatistics findById(String id);
 
-  @PostConstruct
-  public void init() {
-    this.rqueueRedisTemplate = new RqueueRedisTemplate<>(rqueueConfig.getConnectionFactory());
-  }
+  List<QueueStatistics> findAll(Collection<String> ids);
 
-  public QueueStatistics findById(String id) {
-    return rqueueRedisTemplate.get(id);
-  }
-
-  public List<QueueStatistics> findAll(Collection<String> ids) {
-    return rqueueRedisTemplate.mget(ids).stream()
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
-  }
-
-  public void save(QueueStatistics queueStatistics) {
-    if (queueStatistics.getId() == null) {
-      throw new IllegalArgumentException("id cannot be null " + queueStatistics);
-    }
-    rqueueRedisTemplate.set(queueStatistics.getId(), queueStatistics);
-  }
+  void save(QueueStatistics queueStatistics);
 }

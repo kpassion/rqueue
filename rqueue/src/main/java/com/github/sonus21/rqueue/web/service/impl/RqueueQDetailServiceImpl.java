@@ -20,11 +20,10 @@ import static com.github.sonus21.rqueue.utils.StringUtils.clean;
 
 import com.github.sonus21.rqueue.common.RqueueRedisTemplate;
 import com.github.sonus21.rqueue.core.RqueueMessage;
-import com.github.sonus21.rqueue.core.RqueueMessageMetaDataService;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
 import com.github.sonus21.rqueue.exception.UnknownSwitchCase;
-import com.github.sonus21.rqueue.models.db.MessageMetaData;
-import com.github.sonus21.rqueue.models.db.QueueMetaData;
+import com.github.sonus21.rqueue.models.db.MessageMetadata;
+import com.github.sonus21.rqueue.models.db.QueueMetadata;
 import com.github.sonus21.rqueue.models.enums.ActionType;
 import com.github.sonus21.rqueue.models.enums.DataType;
 import com.github.sonus21.rqueue.models.enums.NavTab;
@@ -35,6 +34,7 @@ import com.github.sonus21.rqueue.utils.QueueUtils;
 import com.github.sonus21.rqueue.utils.StringUtils;
 import com.github.sonus21.rqueue.utils.TimeUtils;
 import com.github.sonus21.rqueue.web.service.RqueueDashboardUtilityService;
+import com.github.sonus21.rqueue.web.service.RqueueMessageMetadataService;
 import com.github.sonus21.rqueue.web.service.RqueueQDetailService;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -45,29 +45,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.ZSetOperations.TypedTuple;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 @Service
-@AllArgsConstructor(onConstructor = @__(@Autowired))
 public class RqueueQDetailServiceImpl implements RqueueQDetailService {
-  private RqueueRedisTemplate<String> stringRqueueRedisTemplate;
-  private RqueueMessageTemplate rqueueMessageTemplate;
-  private RqueueDashboardUtilityService rqueueDashboardUtilityService;
-  private RqueueMessageMetaDataService rqueueMessageMetaDataService;
+  private final RqueueRedisTemplate<String> stringRqueueRedisTemplate;
+  private final RqueueMessageTemplate rqueueMessageTemplate;
+  private final RqueueDashboardUtilityService rqueueDashboardUtilityService;
+  private final RqueueMessageMetadataService rqueueMessageMetaDataService;
+
+  @Autowired
+  public RqueueQDetailServiceImpl(
+      @Qualifier("stringRqueueRedisTemplate") RqueueRedisTemplate<String> stringRqueueRedisTemplate,
+      RqueueMessageTemplate rqueueMessageTemplate,
+      RqueueDashboardUtilityService rqueueDashboardUtilityService,
+      RqueueMessageMetadataService rqueueMessageMetaDataService) {
+    this.stringRqueueRedisTemplate = stringRqueueRedisTemplate;
+    this.rqueueMessageTemplate = rqueueMessageTemplate;
+    this.rqueueDashboardUtilityService = rqueueDashboardUtilityService;
+    this.rqueueMessageMetaDataService = rqueueMessageMetaDataService;
+  }
 
   @Override
-  public List<QueueMetaData> getQueueMetadata() {
+  public List<QueueMetadata> getQueueMetadata() {
     List<String> queues = rqueueDashboardUtilityService.getQueues();
     return rqueueDashboardUtilityService.getQueueMetadata(queues);
   }
 
   @Override
-  public QueueMetaData getMeta(String queueName) {
-    List<QueueMetaData> metaData =
+  public QueueMetadata getMeta(String queueName) {
+    List<QueueMetadata> metaData =
         rqueueDashboardUtilityService.getQueueMetadata(Collections.singletonList(queueName));
     if (CollectionUtils.isEmpty(metaData)) {
       return null;
@@ -77,14 +88,14 @@ public class RqueueQDetailServiceImpl implements RqueueQDetailService {
 
   @Override
   public Map<String, List<Entry<NavTab, DataStructureMetaData>>> getQueueDataStructureDetails(
-      List<QueueMetaData> queueMetaData) {
+      List<QueueMetadata> queueMetaData) {
     return queueMetaData.stream()
-        .collect(Collectors.toMap(QueueMetaData::getName, this::getQueueDataStructureDetails));
+        .collect(Collectors.toMap(QueueMetadata::getName, this::getQueueDataStructureDetails));
   }
 
   @Override
   public List<Entry<NavTab, DataStructureMetaData>> getQueueDataStructureDetails(
-      QueueMetaData queueMetaData) {
+      QueueMetadata queueMetaData) {
     List<Entry<NavTab, DataStructureMetaData>> metaData = new ArrayList<>();
     if (queueMetaData == null) {
       return metaData;
@@ -124,7 +135,7 @@ public class RqueueQDetailServiceImpl implements RqueueQDetailService {
   }
 
   @Override
-  public List<NavTab> getNavTabs(QueueMetaData queueMetaData) {
+  public List<NavTab> getNavTabs(QueueMetadata queueMetaData) {
     List<NavTab> navTabs = new ArrayList<>();
     if (queueMetaData != null) {
       navTabs.add(NavTab.PENDING);
@@ -166,9 +177,9 @@ public class RqueueQDetailServiceImpl implements RqueueQDetailService {
             .map(QueueUtils::getMetaDataKey)
             .collect(Collectors.toList());
 
-    List<MessageMetaData> vals = rqueueMessageMetaDataService.findAll(ids);
+    List<MessageMetadata> vals = rqueueMessageMetaDataService.findAll(ids);
     Map<String, Boolean> msgIdToDeleted =
-        vals.stream().collect(Collectors.toMap(MessageMetaData::getMessageId, e -> true));
+        vals.stream().collect(Collectors.toMap(MessageMetadata::getMessageId, e -> true));
     return rqueueMessages.stream()
         .map(e -> rowBuilder.row(e, msgIdToDeleted.getOrDefault(e.getId(), false)))
         .collect(Collectors.toList());
@@ -232,7 +243,7 @@ public class RqueueQDetailServiceImpl implements RqueueQDetailService {
   @Override
   public QueueExplorePageResponse getExplorePageData(
       String src, String name, DataType type, int pageNumber, int itemPerPage) {
-    QueueMetaData metaData = getMeta(src);
+    QueueMetadata metaData = getMeta(src);
     QueueExplorePageResponse response = new QueueExplorePageResponse();
     boolean deadLetterQueue = metaData.isDelayedQueue(name);
     boolean timeQueue = QueueUtils.isTimeQueue(name);

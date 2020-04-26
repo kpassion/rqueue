@@ -21,14 +21,15 @@ import static com.github.sonus21.rqueue.utils.Constants.SECONDS_IN_A_WEEK;
 import static org.springframework.util.Assert.notNull;
 
 import com.github.sonus21.rqueue.core.RqueueMessage;
+import com.github.sonus21.rqueue.core.support.MessageProcessor;
 import com.github.sonus21.rqueue.metrics.RqueueCounter;
-import com.github.sonus21.rqueue.models.db.MessageMetaData;
+import com.github.sonus21.rqueue.models.db.MessageMetadata;
 import com.github.sonus21.rqueue.models.db.TaskStatus;
 import com.github.sonus21.rqueue.models.event.QueueTaskEvent;
-import com.github.sonus21.rqueue.core.support.MessageProcessor;
 import com.github.sonus21.rqueue.utils.MessageUtils;
 import com.github.sonus21.rqueue.utils.QueueUtils;
 import com.github.sonus21.rqueue.utils.RedisUtils;
+import com.github.sonus21.rqueue.web.service.RqueueMessageMetadataService;
 import java.lang.ref.WeakReference;
 import java.time.Duration;
 import java.util.Objects;
@@ -43,20 +44,33 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
   private final RqueueMessage rqueueMessage;
   private final String processingQueueName;
   private final String messageMetaDataId;
-  private MessageMetaData messageMetaData;
+  private MessageMetadata messageMetaData;
+  private Object userMessage;
+  private final RqueueMessageHandler rqueueMessageHandler;
+  private final RqueueMessageMetadataService rqueueMessageMetadataService;
 
   MessageExecutor(
-      RqueueMessage message,
+      RqueueMessage rqueueMessage,
       QueueDetail queueDetail,
-      WeakReference<RqueueMessageListenerContainer> container) {
+      WeakReference<RqueueMessageListenerContainer> container,
+      RqueueMessageHandler rqueueMessageHandler) {
     super(container);
-    rqueueMessage = message;
+    this.rqueueMessage = rqueueMessage;
     this.queueDetail = queueDetail;
     this.processingQueueName = QueueUtils.getProcessingQueueName(queueDetail.getQueueName());
-    this.messageMetaDataId = QueueUtils.getMessageMetaDataKey(message.getId());
+    this.messageMetaDataId = QueueUtils.getMessageMetaDataKey(rqueueMessage.getId());
+    this.rqueueMessageHandler = rqueueMessageHandler;
     this.message =
         new GenericMessage<>(
-            message.getMessage(), QueueUtils.getQueueHeaders(queueDetail.getQueueName()));
+            rqueueMessage.getMessage(), QueueUtils.getQueueHeaders(queueDetail.getQueueName()));
+    try {
+      this.userMessage =
+          MessageUtils.convertMessageToObject(message, rqueueMessageHandler.getMessageConverters());
+    } catch (Exception e) {
+      log.error("Unable to convert message {}", rqueueMessage.getMessage(), e);
+    }
+    this.rqueueMessageMetadataService =
+        Objects.requireNonNull(container.get()).getRqueueMessageMetadataService();
   }
 
   private boolean isDebugEnabled() {
@@ -75,10 +89,6 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     return rqueueMessage.getRetryCount() == null
         ? queueDetail.getNumRetries()
         : rqueueMessage.getRetryCount();
-  }
-
-  private Object getPayload() {
-    return MessageUtils.convertMessageToObject(message, getMessageConverters());
   }
 
   private void callMessageProcessor(TaskStatus status, RqueueMessage rqueueMessage) {
@@ -105,8 +115,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     if (messageProcessor != null) {
       try {
         log.debug("Calling {} processor for {}", status, rqueueMessage);
-        Object payload = getPayload();
-        messageProcessor.process(payload);
+        messageProcessor.process(userMessage);
       } catch (Exception e) {
         log.error("Message processor {} call failed", status, e);
       }
@@ -115,7 +124,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
 
   @SuppressWarnings("ConstantConditions")
   private void updateCounter(boolean failOrExecution) {
-    RqueueCounter rqueueCounter = container.get().rqueueCounter;
+    RqueueCounter rqueueCounter = container.get().getRqueueCounter();
     if (rqueueCounter == null) {
       return;
     }
@@ -127,31 +136,28 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
   }
 
   private void publishEvent(TaskStatus status, long jobExecutionStartTime) {
-    if (Objects.requireNonNull(container.get()).rqueueWebConfig.isCollectListenerStats()) {
+    if (Objects.requireNonNull(container.get()).getRqueueWebConfig().isCollectListenerStats()) {
       addOrDeleteMetadata(jobExecutionStartTime, false);
       QueueTaskEvent event =
           new QueueTaskEvent(queueDetail.getQueueName(), status, rqueueMessage, messageMetaData);
-      Objects.requireNonNull(container.get()).applicationEventPublisher.publishEvent(event);
+      Objects.requireNonNull(container.get()).getApplicationEventPublisher().publishEvent(event);
     }
   }
 
   private void addOrDeleteMetadata(long jobExecutionTime, boolean saveOrDelete) {
     if (messageMetaData == null) {
-      messageMetaData =
-          Objects.requireNonNull(container.get())
-              .getMessageMetaDataService()
-              .get(messageMetaDataId);
+      messageMetaData = rqueueMessageMetadataService.get(messageMetaDataId);
     }
     if (messageMetaData == null) {
-      messageMetaData = new MessageMetaData(messageMetaDataId, rqueueMessage.getId());
+      messageMetaData = new MessageMetadata(messageMetaDataId, rqueueMessage.getId());
     }
     messageMetaData.addExecutionTime(jobExecutionTime);
     if (saveOrDelete) {
       Objects.requireNonNull(container.get())
-          .getMessageMetaDataService()
+          .getRqueueMessageMetadataService()
           .save(messageMetaData, Duration.ofSeconds(SECONDS_IN_A_WEEK));
     } else {
-      Objects.requireNonNull(container.get()).getMessageMetaDataService().delete(messageMetaDataId);
+      rqueueMessageMetadataService.delete(messageMetaDataId);
     }
   }
 
@@ -168,7 +174,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     if (isWarningEnabled()) {
       log.warn(
           "Message {} Moved to dead letter queue: {}, dead letter queue: {}",
-          getPayload(),
+          userMessage,
           queueDetail.getQueueName(),
           queueDetail.getDeadLetterQueueName());
     }
@@ -194,7 +200,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     if (isDebugEnabled()) {
       log.debug(
           "Message {} will be retried later, queue: {}, processing queue: {}",
-          getPayload(),
+          userMessage,
           queueDetail.getQueueName(),
           processingQueueName);
     }
@@ -209,7 +215,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     if (isErrorEnabled()) {
       log.warn(
           "Message {} discarded due to retry limit exhaust queue: {}",
-          getPayload(),
+          userMessage,
           queueDetail.getQueueName());
     }
     deleteMessage(TaskStatus.DISCARDED, currentFailureCount, jobExecutionStartTime);
@@ -217,7 +223,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
 
   private void handleManualDeletion(int currentFailureCount, long jobExecutionStartTime) {
     if (isWarningEnabled()) {
-      log.info(
+      log.warn(
           "Message Deleted manually {} successfully, Queue: {} ",
           rqueueMessage,
           queueDetail.getQueueName());
@@ -238,6 +244,7 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
   private void handlePostProcessing(
       boolean executed,
       boolean deleted,
+      boolean ignored,
       int currentFailureCount,
       int maxRetryCount,
       long jobExecutionStartTime) {
@@ -245,7 +252,9 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
       return;
     }
     try {
-      if (deleted) {
+      if (ignored) {
+        handleIgnoredMessage(currentFailureCount, jobExecutionStartTime);
+      } else if (deleted) {
         handleManualDeletion(currentFailureCount, jobExecutionStartTime);
       } else {
         if (!executed) {
@@ -265,6 +274,13 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     }
   }
 
+  private void handleIgnoredMessage(int currentFailureCount, long jobExecutionStartTime) {
+    if (isDebugEnabled()) {
+      log.debug("Message {} ignored, Queue: {} ", rqueueMessage, queueDetail.getQueueName());
+    }
+    deleteMessage(TaskStatus.IGNORED, currentFailureCount, jobExecutionStartTime);
+  }
+
   private long getMaxProcessingTime() {
     return System.currentTimeMillis()
         + queueDetail.getVisibilityTimeout()
@@ -273,12 +289,17 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
 
   private boolean isMessageDeleted(String id) {
     notNull(id, "Message id must be present");
-    messageMetaData =
-        Objects.requireNonNull(container.get()).getMessageMetaDataService().get(messageMetaDataId);
+    messageMetaData = rqueueMessageMetadataService.get(messageMetaDataId);
     if (messageMetaData == null) {
       return false;
     }
     return messageMetaData.isDeleted();
+  }
+
+  private boolean shouldProcess() {
+    return Objects.requireNonNull(container.get())
+        .getPreExecutionMessageProcessor()
+        .process(userMessage);
   }
 
   @Override
@@ -289,17 +310,22 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     long maxRetryTime = getMaxProcessingTime();
     long startTime = System.currentTimeMillis();
     boolean deleted = false;
+    boolean ignored = false;
     do {
       if (!isQueueActive(queueDetail.getQueueName())) {
         return;
       }
-      if (isMessageDeleted(rqueueMessage.getId())) {
+      if (!shouldProcess()) {
+        ignored = true;
+      } else if (isMessageDeleted(rqueueMessage.getId())) {
         deleted = true;
+      }
+      if (ignored || deleted) {
         break;
       }
       try {
         updateCounter(false);
-        getMessageHandler().handleMessage(message);
+        rqueueMessageHandler.handleMessage(message);
         executed = true;
       } catch (Exception e) {
         updateCounter(true);
@@ -308,6 +334,6 @@ class MessageExecutor extends MessageContainerBase implements Runnable {
     } while (currentFailureCount < maxRetryCount
         && !executed
         && System.currentTimeMillis() < maxRetryTime);
-    handlePostProcessing(executed, deleted, currentFailureCount, maxRetryCount, startTime);
+    handlePostProcessing(executed, deleted, ignored, currentFailureCount, maxRetryCount, startTime);
   }
 }

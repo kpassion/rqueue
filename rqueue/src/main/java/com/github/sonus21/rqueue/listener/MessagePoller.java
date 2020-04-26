@@ -44,6 +44,16 @@ class MessagePoller extends MessageContainerBase implements Runnable {
     return getRqueueMessageTemplate().pop(queueName, queueDetail.getVisibilityTimeout());
   }
 
+  private void enqueueTask(RqueueMessage message) {
+    getTaskExecutor()
+        .execute(
+            new MessageExecutor(
+                message,
+                queueDetail,
+                container,
+                Objects.requireNonNull(container.get()).getRqueueMessageHandler()));
+  }
+
   @Override
   public void run() {
     log.debug("Running Queue {}", queueName);
@@ -53,7 +63,7 @@ class MessagePoller extends MessageContainerBase implements Runnable {
         RqueueMessage message = getMessage();
         log.debug("Queue: {} Fetched Msg {}", queueName, message);
         if (message != null) {
-          getTaskExecutor().execute(new MessageExecutor(message, queueDetail, container));
+          enqueueTask(message);
         } else {
           TimeUtils.sleepLog(getPollingInterval(), false);
         }

@@ -30,7 +30,8 @@ public enum TaskStatus {
   SUCCESSFUL("Successful execution", true),
   DELETED("Message deleted", false),
   DISCARDED("Message discarded", true),
-  RETRIED("Retired at least once", true);
+  RETRIED("Retired at least once", true),
+  IGNORED("Ignored task", false);
   private String description;
   private boolean chartEnabled;
 

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import com.github.sonus21.rqueue.common.impl.RqueueLockManagerImpl;
 import java.time.Duration;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -16,7 +16,7 @@
 
 package com.github.sonus21.rqueue.web.service;
 
-import com.github.sonus21.rqueue.models.db.QueueMetaData;
+import com.github.sonus21.rqueue.models.db.QueueMetadata;
 import com.github.sonus21.rqueue.models.enums.DataType;
 import com.github.sonus21.rqueue.models.enums.NavTab;
 import com.github.sonus21.rqueue.models.response.DataStructureMetaData;
@@ -27,17 +27,17 @@ import java.util.Map.Entry;
 
 public interface RqueueQDetailService {
 
-  List<QueueMetaData> getQueueMetadata();
+  List<QueueMetadata> getQueueMetadata();
 
-  QueueMetaData getMeta(String queueName);
+  QueueMetadata getMeta(String queueName);
 
   Map<String, List<Entry<NavTab, DataStructureMetaData>>> getQueueDataStructureDetails(
-      List<QueueMetaData> queueMetaData);
+      List<QueueMetadata> queueMetaData);
 
   List<Entry<NavTab, DataStructureMetaData>> getQueueDataStructureDetails(
-      QueueMetaData queueMetaData);
+      QueueMetadata queueMetaData);
 
-  List<NavTab> getNavTabs(QueueMetaData queueMetaData);
+  List<NavTab> getNavTabs(QueueMetadata queueMetaData);
 
   QueueExplorePageResponse getExplorePageData(
       String src, String name, DataType type, int pageNumber, int itemPerPage);

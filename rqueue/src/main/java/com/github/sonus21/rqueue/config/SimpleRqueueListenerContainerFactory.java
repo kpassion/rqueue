@@ -31,9 +31,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.messaging.converter.MessageConverter;
 
 /**
- * This is a bare minimal factory class, that can be used to create {@link
- * RqueueMessageListenerContainer} object. Factory has multiple methods to support different types
- * of requirements.
+ * A Factory class which can be used to create {@link RqueueMessageListenerContainer} object.
+ * Instead of going through lower level detail of {@link RqueueMessageListenerContainer}.
+ *
+ * <p>Factory has multiple methods to support different types of requirements.
  */
 public class SimpleRqueueListenerContainerFactory {
   // Provide task executor, this can be used to provide some additional details like some threads
@@ -51,6 +52,11 @@ public class SimpleRqueueListenerContainerFactory {
   private Long backOffTime;
   // Number of workers requires for execution
   private Integer maxNumWorkers;
+
+  // This message processor would be called before a task can start execution.
+  // It needs to be noted that this message processor would be called multiple time
+  // In case of retry, so application should be able to handle that.
+  private MessageProcessor preExecutionMessageProcessor;
   // This message processor would be called whenever a message is discarded due to retry limit
   // exhaustion
   private MessageProcessor discardMessageProcessor;
@@ -60,7 +66,6 @@ public class SimpleRqueueListenerContainerFactory {
   private MessageProcessor manualDeletionMessageProcessor;
   // This message processor would be called whenever a message executed successfully.
   private MessageProcessor postExecutionMessageProcessor;
-
   // Any custom message requeue message template.
   private RqueueMessageTemplate rqueueMessageTemplate;
 
@@ -239,6 +244,9 @@ public class SimpleRqueueListenerContainerFactory {
     if (discardMessageProcessor != null) {
       messageListenerContainer.setDiscardMessageProcessor(discardMessageProcessor);
     }
+    if (getPreExecutionMessageProcessor() != null) {
+      messageListenerContainer.setPreExecutionMessageProcessor(preExecutionMessageProcessor);
+    }
     return messageListenerContainer;
   }
 
@@ -299,5 +307,22 @@ public class SimpleRqueueListenerContainerFactory {
 
   public MessageProcessor getPostExecutionMessageProcessor() {
     return postExecutionMessageProcessor;
+  }
+
+  public MessageProcessor getPreExecutionMessageProcessor() {
+    return preExecutionMessageProcessor;
+  }
+
+  /**
+   * A message processor that can control the execution of any task, this message processor would be
+   * called multiple time, in case of retry, so application should be able to handle this. If this
+   * message processor returns false then message won't be executed, it will be considered that task
+   * has to be deleted.
+   *
+   * @param preExecutionMessageProcessor pre execution message processor.
+   */
+  public void setPreExecutionMessageProcessor(MessageProcessor preExecutionMessageProcessor) {
+    notNull(preExecutionMessageProcessor, "preMessageProcessor cannot be null");
+    this.preExecutionMessageProcessor = preExecutionMessageProcessor;
   }
 }

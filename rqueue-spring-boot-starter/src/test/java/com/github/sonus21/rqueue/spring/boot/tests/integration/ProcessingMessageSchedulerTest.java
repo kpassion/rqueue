@@ -17,7 +17,7 @@
 package com.github.sonus21.rqueue.spring.boot.tests.integration;
 
 import static com.github.sonus21.rqueue.utils.TimeUtils.waitFor;
-import static rqueue.test.TestUtils.buildMessage;
+import static com.github.sonus21.rqueue.test.TestUtils.buildMessage;
 
 import com.github.sonus21.rqueue.core.RqueueMessage;
 import com.github.sonus21.rqueue.core.RqueueMessageTemplate;
@@ -40,10 +40,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import rqueue.test.RunTestUntilFail;
-import rqueue.test.TestUtils;
-import rqueue.test.dto.Job;
-import rqueue.test.service.ConsumedMessageService;
+import com.github.sonus21.rqueue.test.RunTestUntilFail;
+import com.github.sonus21.rqueue.test.TestUtils;
+import com.github.sonus21.rqueue.test.dto.Job;
+import com.github.sonus21.rqueue.test.service.ConsumedMessageService;
 
 @SpringBootTest
 @RunWith(SpringJUnit4ClassRunner.class)
